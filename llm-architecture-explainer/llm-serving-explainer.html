@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:"Canva Sans";font-style:normal;font-display:swap;font-weight:400 700;src:url("./fonts/canva-sans-latin.woff2") format("woff2-variations"),url("./fonts/canva-sans-latin.woff2") format("woff2");unicode-range:U+0020-007e,U+00a0,U+2013-2014,U+2018-201a,U+201c-201e,U+2020-2022,U+2026}
+@font-face{font-family:"Canva Sans";font-style:normal;font-display:swap;font-weight:400 700;src:url("./fonts/canva-sans-latin-ext.woff2") format("woff2");unicode-range:U+0100-024f}
+html,body{margin:0;background:#fff;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:#7630D7;text-decoration:none}
+a:hover{color:#612DAE;text-decoration:underline}
+@keyframes dcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media (max-width:960px){[data-page]{grid-template-columns:minmax(0,1fr)!important;column-gap:0!important;padding-left:20px!important;padding-right:20px!important}[data-rail]{position:static!important;margin-bottom:24px}[data-rail] ol{flex-direction:row!important;flex-wrap:wrap!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</helmet>
+<div style="font-family:'Canva Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-variation-settings:'opsz' 0;color:#0F1015;background:#fff;font-size:16px;line-height:24px">
+<div data-page="1" style="max-width:1200px;margin:0 auto;padding:0 32px 96px;display:grid;grid-template-columns:200px minmax(0,1fr);column-gap:64px">
+
+<header data-screen-label="Cabecera" style="grid-column:1/-1;padding:56px 0 0;margin-bottom:48px">
+  <h1 style="margin:0 0 24px;font-size:clamp(40px,5vw,64px);line-height:1.05;font-weight:400;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-feature-settings:'ss02','ss03';max-width:22ch;text-wrap:balance">Servir modelos de frontera: del gateway al bloque KV</h1>
+  <p style="margin:0 0 12px;max-width:64ch;font-size:21px;line-height:1.5;text-wrap:pretty">Cómo una petición se convierte en tokens a la escala de Anthropic u OpenAI: el gateway, el planificador, el motor multichip, las dos fases con cuellos de botella opuestos, la caché KV y la contabilidad de bloques que hay debajo de todo.</p>
+  <p style="margin:0 0 32px;max-width:64ch;font-size:16px;line-height:24px;color:#0F121AB2;text-wrap:pretty">Ninguna de las dos empresas publica su stack completo, así que esto es un compuesto de charlas públicas, postmortems de incidentes y los motores de código abierto (vLLM, SGLang, TensorRT-LLM) que implementan las mismas ideas. Los números asumen un modelo denso de clase 70B en un nodo de 8×H100 salvo que un control diga otra cosa. Todos los controles funcionan; el texto nunca depende de que hagas clic en nada.</p>
+  <div style="background:#F3F4F7;border-radius:16px;padding:24px">
+    <div data-hero-stats="1" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px 24px;margin-bottom:24px">
+      <div><div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><span style="width:12px;height:12px;border-radius:3px;background:#606671;flex:none"></span><span style="font-size:32px;line-height:1.1;font-weight:500;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-variant-numeric:tabular-nums">0.1%</span></div><p style="margin:0;font-size:13px;line-height:18px;color:#0F121AB2">Capa web: gateway y planificador, unos 2 ms</p></div>
+      <div><div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><span style="width:12px;height:12px;border-radius:3px;background:#8B3DFF;flex:none"></span><span style="font-size:32px;line-height:1.1;font-weight:500;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-variant-numeric:tabular-nums">10.6%</span></div><p style="margin:0;font-size:13px;line-height:18px;color:#0F121AB2">Prefill: una pasada sobre 20k tokens de prompt, 216 ms</p></div>
+      <div><div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><span style="width:12px;height:12px;border-radius:3px;background:#00C4CC;flex:none"></span><span style="font-size:32px;line-height:1.1;font-weight:500;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-variant-numeric:tabular-nums">89.3%</span></div><p style="margin:0;font-size:13px;line-height:18px;color:#0F121AB2">Decode: 300 tokens de salida a 6,07 ms cada uno, 1,81 s</p></div>
+    </div>
+    <div style="position:relative">
+      <div style="position:relative;height:40px;border-radius:6px;overflow:hidden;background:#E8EAED">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:0.09%;min-width:3px;background:#606671"></div>
+        <div style="position:absolute;left:0.09%;top:0;bottom:0;width:9.6%;background:#8B3DFF"></div>
+        <div style="position:absolute;left:9.96%;top:0;bottom:0;width:80.63%;background-color:#BBF3F4;background-image:repeating-linear-gradient(90deg,#00C4CC 0 1.5px,transparent 1.5px 1.672%)"></div>
+      </div>
+      <div style="position:relative;height:30px;font-size:13px;line-height:18px;color:#0F1015D9;font-variant-numeric:tabular-nums">
+        <div style="position:absolute;left:9.96%;top:-46px;height:66px;border-left:1.5px dashed #00AFB5"></div>
+        <div style="position:absolute;left:calc(9.96% + 8px);bottom:0;white-space:nowrap;font-weight:600">primer token a los 224 ms</div>
+        <div style="position:absolute;left:90.59%;top:-46px;height:66px;border-left:1.5px dashed #00AFB5"></div>
+        <div style="position:absolute;right:calc(9.41% + 8px);bottom:0;white-space:nowrap;font-weight:600">último token a los 2,04 s</div>
+      </div>
+      <div style="position:relative;height:28px;border-top:1px solid #C1C5CD;margin-top:8px;font-size:12px;line-height:16px;color:#0F121AB2;font-variant-numeric:tabular-nums">
+        <div style="position:absolute;left:0;top:0;height:6px;border-left:1px solid #C1C5CD"></div><div style="position:absolute;left:0;top:10px">0 s</div>
+        <div style="position:absolute;left:11.11%;top:0;height:6px;border-left:1px solid #C1C5CD"></div><div style="position:absolute;left:11.11%;top:10px;transform:translateX(-50%)">0.25</div>
+        <div style="position:absolute;left:22.22%;top:0;height:6px;border-left:1px solid #C1C5CD"></div><div style="position:absolute;left:22.22%;top:10px;transform:translateX(-50%)">0.5</div>
+        <div style="position:absolute;left:33.33%;top:0;height:6px;border-left:1px solid #C1C5CD"></div><div style="position:absolute;left:33.33%;top:10px;transform:translateX(-50%)">0.75</div>
+        <div style="position:absolute;left:44.44%;top:0;height:6px;border-left:1px solid #C1C5CD"></div><div style="position:absolute;left:44.44%;top:10px;transform:translateX(-50%)">1 s</div>
+        <div style="position:absolute;left:55.56%;top:0;height:6px;border-left:1px solid #C1C5CD"></div><div style="position:absolute;left:55.56%;top:10px;transform:translateX(-50%)">1.25</div>
+        <div style="position:absolute;left:66.67%;top:0;height:6px;border-left:1px solid #C1C5CD"></div><div style="position:absolute;left:66.67%;top:10px;transform:translateX(-50%)">1.5</div>
+        <div style="position:absolute;left:77.78%;top:0;height:6px;border-left:1px solid #C1C5CD"></div><div style="position:absolute;left:77.78%;top:10px;transform:translateX(-50%)">1.75</div>
+        <div style="position:absolute;left:88.89%;top:0;height:6px;border-left:1px solid #C1C5CD"></div><div style="position:absolute;left:88.89%;top:10px;transform:translateX(-50%)">2 s</div>
+        <div style="position:absolute;left:100%;top:0;height:6px;border-left:1px solid #C1C5CD"></div><div style="position:absolute;right:0;top:10px">2.25</div>
+      </div>
+    </div>
+  </div>
+  <p style="margin:12px 0 0;font-size:14px;line-height:22px;color:#0F121AB2;max-width:72ch;text-wrap:pretty">Una petición, dibujada a escala: 20k tokens de prompt de entrada, 300 de salida, un modelo de 70B en 8×H100 compartiendo réplica de decode con otros 63 usuarios. La capa web es la rendija de la izquierda del todo; cada marca turquesa son cinco pasos de decode.</p>
+</header>
+
+<nav data-rail="1" aria-label="Secciones" style="position:sticky;top:24px;align-self:start">
+  <ol style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px">
+    <li><a href="#path" style="display:flex;gap:10px;align-items:baseline;padding:6px 12px;border-radius:8px;font-size:14px;line-height:20px;font-weight:500;color:#0F1015D9;text-decoration:none;background:{{ navBg.path }};transition:background .15s ease" style-hover="background:#404F6D0F"><span style="font-size:12px;font-weight:600;color:#0F121AB2;min-width:12px">1</span><span>La ruta de la petición</span></a></li>
+    <li><a href="#phases" style="display:flex;gap:10px;align-items:baseline;padding:6px 12px;border-radius:8px;font-size:14px;line-height:20px;font-weight:500;color:#0F1015D9;text-decoration:none;background:{{ navBg.phases }};transition:background .15s ease" style-hover="background:#404F6D0F"><span style="font-size:12px;font-weight:600;color:#0F121AB2;min-width:12px">2</span><span>Dos fases</span></a></li>
+    <li><a href="#decode" style="display:flex;gap:10px;align-items:baseline;padding:6px 12px;border-radius:8px;font-size:14px;line-height:20px;font-weight:500;color:#0F1015D9;text-decoration:none;background:{{ navBg.decode }};transition:background .15s ease" style-hover="background:#404F6D0F"><span style="font-size:12px;font-weight:600;color:#0F121AB2;min-width:12px">3</span><span>Decode, byte a byte</span></a></li>
+    <li><a href="#stall" style="display:flex;gap:10px;align-items:baseline;padding:6px 12px;border-radius:8px;font-size:14px;line-height:20px;font-weight:500;color:#0F1015D9;text-decoration:none;background:{{ navBg.stall }};transition:background .15s ease" style-hover="background:#404F6D0F"><span style="font-size:12px;font-weight:600;color:#0F121AB2;min-width:12px">4</span><span>El atasco de generación</span></a></li>
+    <li><a href="#cache" style="display:flex;gap:10px;align-items:baseline;padding:6px 12px;border-radius:8px;font-size:14px;line-height:20px;font-weight:500;color:#0F1015D9;text-decoration:none;background:{{ navBg.cache }};transition:background .15s ease" style-hover="background:#404F6D0F"><span style="font-size:12px;font-weight:600;color:#0F121AB2;min-width:12px">5</span><span>Caché KV de prefijos</span></a></li>
+    <li><a href="#blocks" style="display:flex;gap:10px;align-items:baseline;padding:6px 12px;border-radius:8px;font-size:14px;line-height:20px;font-weight:500;color:#0F1015D9;text-decoration:none;background:{{ navBg.blocks }};transition:background .15s ease" style-hover="background:#404F6D0F"><span style="font-size:12px;font-weight:600;color:#0F121AB2;min-width:12px">6</span><span>Dentro de la caché en HBM</span></a></li>
+    <li><a href="#sources" style="display:flex;gap:10px;align-items:baseline;padding:6px 12px;border-radius:8px;font-size:14px;line-height:20px;font-weight:500;color:#0F1015D9;text-decoration:none;background:{{ navBg.sources }};transition:background .15s ease" style-hover="background:#404F6D0F"><span style="font-size:12px;font-weight:600;color:#0F121AB2;min-width:12px">§</span><span>Fuentes y supuestos</span></a></li>
+  </ol>
+</nav>
+
+<main style="min-width:0">
+
+<section id="path" data-screen-label="1 La ruta de la petición" style="padding-bottom:56px;margin-bottom:56px;border-bottom:1px solid #39466024">
+  <p style="margin:0 0 8px;font-size:12px;line-height:18px;font-weight:600;letter-spacing:.02em;color:#7630D7">Sección 1</p>
+  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-feature-settings:'ss02','ss03';text-wrap:balance">La ruta de la petición</h2>
+  <div style="max-width:66ch">
+    <p style="margin:0 0 16px;font-size:18px;line-height:28px;text-wrap:pretty">Cientos de millones de respuestas al día suena a problema de escala web. No lo es. En el gateway son unos pocos miles de peticiones por segundo, algo que cualquier servicio en Go decente aguanta sin despeinarse. Lo difícil es que cada petición fija cientos de gigabytes de pesos en HBM y quema segundos de acelerador en un bucle limitado por el ancho de banda de memoria. Servir es un problema de planificación y de memoria disfrazado de API REST.</p>
+  </div>
+
+  <figure style="margin:32px 0">
+    <div style="background:#F3F4F7;border-radius:16px;padding:24px;display:grid;gap:0">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 44px minmax(0,1.25fr) 44px minmax(0,1.4fr);align-items:stretch">
+        <div style="background:#fff;border:1px solid #39466024;border-radius:12px;padding:14px 16px;box-shadow:{{ lit.client }};transition:{{ tbs }}"><p style="margin:0;font-size:14px;line-height:20px;font-weight:600">Cliente</p><p style="margin:2px 0 0;font-size:12px;line-height:18px;color:#0F121AB2">SDK, HTTPS, lee SSE</p></div>
+        <div style="position:relative;align-self:center;height:2px;background:#C1C5CD;margin:0 6px"><div style="position:absolute;left:0;top:0;height:100%;width:{{ conn.c1 }}%;background:#8B3DFF;transition:{{ tw }}"></div><svg style="position:absolute;right:-5px;top:-5px" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M4 2l4 4-4 4" fill="none" stroke="#C1C5CD" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="stroke:{{ conn.s1 }};transition:{{ tst }}"></path></svg></div>
+        <div style="background:#fff;border:1px solid #39466024;border-radius:12px;padding:14px 16px;box-shadow:{{ lit.gateway }};transition:{{ tbs }}"><p style="margin:0;font-size:14px;line-height:20px;font-weight:600">Gateway de API</p><p style="margin:2px 0 0;font-size:12px;line-height:18px;color:#0F121AB2">Autenticación, límites de uso, medición</p></div>
+        <div style="position:relative;align-self:center;height:2px;background:#C1C5CD;margin:0 6px"><div style="position:absolute;left:0;top:0;height:100%;width:{{ conn.c2 }}%;background:#8B3DFF;transition:{{ tw }}"></div><svg style="position:absolute;right:-5px;top:-5px" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M4 2l4 4-4 4" fill="none" stroke="#C1C5CD" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="stroke:{{ conn.s2 }};transition:{{ tst }}"></path></svg></div>
+        <div style="background:#fff;border:1px solid #39466024;border-radius:12px;padding:14px 16px;box-shadow:{{ lit.sched }};transition:{{ tbs }}"><p style="margin:0;font-size:14px;line-height:20px;font-weight:600">Enrutador y planificador</p><p style="margin:2px 0 0;font-size:12px;line-height:18px;color:#0F121AB2">Colocación de réplica según la KV</p></div>
+      </div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 44px minmax(0,1.25fr) 44px minmax(0,1.4fr);height:60px">
+        <div style="position:relative;height:100%"><div style="position:absolute;left:50%;top:6px;bottom:0;width:2px;margin-left:-1px;background:#C1C5CD"><div style="position:absolute;left:0;bottom:0;width:100%;height:{{ conn.c5 }}%;background:#8B3DFF;transition:{{ th }}"></div></div><svg style="position:absolute;left:50%;top:0;margin-left:-6px" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 8l4-4 4 4" fill="none" stroke="#C1C5CD" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="stroke:{{ conn.s5 }};transition:{{ tst }}"></path></svg><span style="position:absolute;left:calc(50% + 10px);top:50%;transform:translateY(-50%);font-size:12px;line-height:16px;color:#0F121AB2;white-space:nowrap">Devuelve el stream (SSE)</span></div>
+        <div></div><div></div><div></div>
+        <div style="position:relative;height:100%"><div style="position:absolute;left:50%;top:0;bottom:6px;width:2px;margin-left:-1px;background:#C1C5CD"><div style="position:absolute;left:0;top:0;width:100%;height:{{ conn.c3 }}%;background:#8B3DFF;transition:{{ th }}"></div></div><svg style="position:absolute;left:50%;bottom:0;margin-left:-6px" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="#C1C5CD" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="stroke:{{ conn.s3 }};transition:{{ tst }}"></path></svg></div>
+      </div>
+      <div style="border:1.5px dashed #C1C5CD;border-radius:12px;padding:16px;display:grid;gap:12px">
+        <p style="margin:0;font-size:12px;line-height:18px;color:#0F121AB2;text-align:center">Pool de réplicas: miles de motores, cada uno de 8 a 64 chips actuando como un solo modelo</p>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 112px minmax(0,1fr);align-items:stretch">
+          <div style="background:#fff;border:1.5px solid #00AFB5;border-radius:12px;padding:14px 16px;box-shadow:{{ lit.decode }};transition:{{ tbs }}">
+            <p style="margin:0;font-size:14px;line-height:20px;font-weight:600">Réplicas de decode</p>
+            <p style="margin:2px 0 12px;font-size:12px;line-height:18px;color:#0F121AB2">Bucle limitado por ancho de banda, un token por paso</p>
+            <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+              <div style="display:grid;grid-template-columns:repeat(8,12px);gap:4px;flex:none"><sc-for list="{{ chips24 }}" as="c" hint-placeholder-count="24"><div style="width:12px;height:12px;border-radius:3px;background:#00C4CC"></div></sc-for></div>
+              <div style="font-size:12px;line-height:16px;color:#0F121AB2;display:grid;gap:0"><span>TP = 8 entre los chips</span><span>toda la HBM libre guarda KV</span><span>dimensionadas para la latencia por token</span></div>
+            </div>
+          </div>
+          <div style="position:relative;align-self:center;height:44px"><span style="position:absolute;left:0;right:0;top:0;text-align:center;font-size:12px;line-height:16px;color:#1A62FF;font-weight:600">Traspaso de KV</span><div style="position:absolute;left:10px;right:10px;top:30px;height:2px;background:#C1C5CD"><div style="position:absolute;right:0;top:0;height:100%;width:{{ conn.c4 }}%;background:#3D8BFF;transition:{{ tw }}"></div><svg style="position:absolute;left:-5px;top:-5px" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M8 2L4 6l4 4" fill="none" stroke="#C1C5CD" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="stroke:{{ conn.s4 }};transition:{{ tst }}"></path></svg></div></div>
+          <div style="background:#fff;border:1.5px solid #8B3DFF;border-radius:12px;padding:14px 16px;box-shadow:{{ lit.prefill }};transition:{{ tbs }}">
+            <p style="margin:0;font-size:14px;line-height:20px;font-weight:600">Réplicas de prefill</p>
+            <p style="margin:2px 0 12px;font-size:12px;line-height:18px;color:#0F121AB2">Pasada limitada por cómputo sobre todo el prompt</p>
+            <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+              <div style="display:grid;grid-template-columns:repeat(8,12px);gap:4px;flex:none"><sc-for list="{{ chips16 }}" as="c" hint-placeholder-count="16"><div style="width:12px;height:12px;border-radius:3px;background:#8B3DFF"></div></sc-for></div>
+              <div style="font-size:12px;line-height:16px;color:#0F121AB2;display:grid;gap:0"><span>menos que las de decode</span><span>dimensionadas para el primer token</span><span>la KV viaja a la izquierda por RDMA</span></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 112px minmax(0,1fr);height:22px">
+          <div style="position:relative"><div style="position:absolute;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;background:#C1C5CD"></div><svg style="position:absolute;left:50%;top:-2px;margin-left:-6px" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 8l4-4 4 4" fill="none" stroke="#C1C5CD" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"></path></svg><svg style="position:absolute;left:50%;bottom:-2px;margin-left:-6px" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="#C1C5CD" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
+          <div></div>
+          <div style="position:relative"><div style="position:absolute;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;background:#C1C5CD"></div><svg style="position:absolute;left:50%;top:-2px;margin-left:-6px" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 8l4-4 4 4" fill="none" stroke="#C1C5CD" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"></path></svg><svg style="position:absolute;left:50%;bottom:-2px;margin-left:-6px" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="#C1C5CD" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
+        </div>
+        <div style="background:#fff;border:1.5px solid #3D8BFF;border-radius:12px;padding:10px 16px;text-align:center"><p style="margin:0;font-size:14px;line-height:20px;font-weight:600">Caché KV de prefijos</p><p style="margin:2px 0 0;font-size:12px;line-height:18px;color:#0F121AB2">HBM, luego DRAM del host, luego SSD o un almacén en red</p></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px 20px;font-size:13px;line-height:18px;color:#0F1015D9;margin-top:16px">
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;vertical-align:-1px;background:#8B3DFF"></span>un chip de prefill</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;vertical-align:-1px;background:#00C4CC"></span>un chip de decode</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;vertical-align:-1px;background:#fff;border:1px solid #8A8F99;box-sizing:border-box"></span>plano de control y almacén KV, solo CPUs</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;margin-top:16px">
+      <button type="button" onClick="{{ onTrace }}" disabled="{{ traceRunning }}" style="height:40px;padding:0 16px;border-radius:12px;border:0;background:#fff;color:#0F1015;box-shadow:inset 0 0 0 1px #35415A33;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background .08s ease;flex:none" style-hover="background:#F3F4F7" style-active="background:#E8EAED">Seguir una petición</button>
+      <p style="margin:0;font-size:14px;line-height:22px;color:#0F121AB2;flex:1 1 320px;text-wrap:pretty">{{ traceCaption }}</p>
+    </div>
+  </figure>
+
+  <div style="max-width:66ch">
+    <ol style="margin:0 0 16px;padding-left:1.25em;font-size:16px;line-height:24px">
+      <li style="margin-bottom:8px;text-wrap:pretty">El cliente envía la petición por HTTPS. El SDK gestiona los reintentos y lee la respuesta como un stream de eventos SSE.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">El gateway termina el TLS, autentica, aplica cubos de tokens por organización, valida el cuerpo y mide el uso para facturar.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">El planificador elige una flota de modelo y una réplica: primero la afinidad con la caché de prefijos, luego la presión de KV y la profundidad de cola, luego la clase de prioridad.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">Un worker de prefill procesa todo el prompt en una pasada limitada por cómputo y produce la caché KV y el primer token.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">La KV viaja por RDMA a un worker de decode, que emite un token por paso en un bucle limitado por ancho de banda.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">Los tokens vuelven en streaming por el gateway a medida que se producen.</li>
+    </ol>
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Borde y gateway</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Aburridísimo, y a propósito. Anycast, terminación TLS, autenticación, cubos de tokens por organización (peticiones por minuto y tokens por minuto se cuentan por separado), validación de la petición y medición de uso. Sin estado, escalado horizontal, y no toca un acelerador jamás. Su única tarea no obvia es la contrapresión: devolver 429 y errores de sobrecarga rápido en vez de encolar, porque una petición que espera 30 segundos ya se ha cargado su SLO.</p>
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Enrutador y planificador</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Aquí está la palanca. Elige una flota de modelo y luego una réplica concreta, pesando tres cosas. Primero la afinidad con la caché de prefijos: las peticiones que comparten prefijo de prompt deberían caer donde esa KV ya está residente (sección 5). Luego la presión de memoria KV y la profundidad de cola de cada réplica, no la CPU ni las QPS. Luego la clase de prioridad: el tráfico interactivo entra primero, y el nivel batch existe justo para absorber la capacidad ociosa con menos prioridad.</p>
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Dentro de una réplica</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Un modelo de frontera no cabe en un solo chip, así que una réplica son de 8 a 64 aceleradores o más actuando como un único motor de inferencia. El paralelismo de tensor parte cada matmul entre los chips de un nodo, con un all-reduce por capa sobre NVLink o ICI de TPU. El paralelismo de pipeline apila capas entre nodos. El paralelismo de expertos reparte los expertos MoE entre chips con un all-to-all por token. Encima van los trucos de los que trata el resto de esta página: batching continuo, caché KV paginada, separación prefill/decode, decodificación especulativa, pesos FP8, kernels fusionados y grafos compilados.</p>
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Flota y hardware</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Anthropic contó en su postmortem de septiembre de 2025 que sirve los mismos modelos sobre GPUs de NVIDIA, TPUs de Google y AWS Trainium, con stacks de inferencia por plataforma que deben producir una salida idéntica. Aquel incidente fueron tres fallos de servicio independientes, incluidos un error de compilación en XLA:TPU y un fallo de enrutamiento por ventana de contexto, lo que te dice cuánto del stack es específico de cada plataforma. OpenAI corre sobre Azure más capacidad alquilada (CoreWeave, Oracle), históricamente operó Kubernetes a escala de 7.500 nodos, escribió Triton para sus kernels y está construyendo silicio propio con Broadcom.</p>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Las dos sobreaprovisionan para el pico porque el autoescalado es lento (cargar cientos de gigabytes de pesos en HBM lleva minutos) y rellenan el valle con trabajos batch e internos. Los despliegues van en canario por réplica; un kernel malo se revierte, no se parchea en caliente.</p>
+  </div>
+</section>
+
+<section id="phases" data-screen-label="2 Dos fases" style="padding-bottom:56px;margin-bottom:56px;border-bottom:1px solid #39466024">
+  <p style="margin:0 0 8px;font-size:12px;line-height:18px;font-weight:600;letter-spacing:.02em;color:#7630D7">Sección 2</p>
+  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-feature-settings:'ss02','ss03';text-wrap:balance">Dos fases con cuellos de botella opuestos</h2>
+  <div style="max-width:66ch">
+    <p style="margin:0 0 16px;font-size:18px;line-height:28px;text-wrap:pretty">Cada petición ejecuta dos cargas de trabajo. El prefill es una pasada gorda sobre todo el prompt. El decode es un bucle que emite un token por paso. Todo lo ingenioso del planificador existe porque esas dos no se llevan bien en la misma iteración.</p>
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Prefill</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">El prompt atraviesa el modelo en una sola pasada. Dos salidas: los tensores K y V de cada token en cada capa (la caché KV) y los logits del primer token generado. Cada proyección es <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">[N × d] @ [d × d']</code>, así que cada byte de pesos leído de HBM se reutiliza N veces. La intensidad aritmética escala con N y, pasados unos cientos de tokens, te clavas en el techo de cómputo. La atención añade O(N²) FLOPs encima (FlashAttention la hace eficiente en E/S, no subcuadrática). El tiempo hasta el primer token es cola más prefill, y un prompt de 100k tokens son segundos de puro tensor core. Los aciertos de caché de prefijos ayudan porque solo se hace prefill del sufijo no cacheado.</p>
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Decode</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Un token por secuencia y paso, y cada paso vuelve a leer todos los pesos más la caché KV entera de esa secuencia. Las proyecciones pasan a ser <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">[B × d] @ [d × d']</code> con B diminuto al lado de d: matmuls flacos que poco se parecen a los del prefill. La latencia entre tokens son los bytes tocados divididos por el ancho de banda de HBM. La sección 3 hace las cuentas.</p>
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">El punto de codo</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">El punto de codo de un chip son los FLOPS pico divididos por el ancho de banda de memoria: la intensidad aritmética a la que el tiempo de cómputo iguala al de memoria. Cada parámetro cuesta 2 FLOPs por token y 1 byte en FP8, así que la intensidad sobre los pesos es de unos 2 × (tokens de la iteración) FLOP por byte. Por debajo del codo esperas a la HBM; por encima esperas a los tensor cores. Las lecturas de KV suben el suelo de memoria, lo que desplaza el codo a la derecha; el gráfico de techo de la sección 4 lo calcula para el lote que elijas.</p>
+  </div>
+  <figure style="margin:32px 0 0">
+    <div style="overflow-x:auto">
+      <div style="min-width:600px;font-size:14px;line-height:20px;font-variant-numeric:tabular-nums">
+        <div style="display:grid;grid-template-columns:minmax(0,1.3fr) repeat(4,minmax(0,1fr));border-bottom:1px solid #39466024"><div style="padding:0 12px 10px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2">Acelerador</div><div style="padding:0 12px 10px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2;text-align:right">FP8 pico (denso)</div><div style="padding:0 12px 10px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2;text-align:right">Ancho de banda HBM</div><div style="padding:0 12px 10px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2;text-align:right">Codo, FLOP por byte</div><div style="padding:0 12px 10px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2;text-align:right">Tokens por paso para llegar</div></div>
+        <div style="display:grid;grid-template-columns:minmax(0,1.3fr) repeat(4,minmax(0,1fr));border-bottom:1px solid #39466024"><div style="padding:10px 12px">H100 SXM</div><div style="padding:10px 12px;text-align:right;font-weight:500">1979 TFLOPS</div><div style="padding:10px 12px;text-align:right;font-weight:500">3.35 TB/s</div><div style="padding:10px 12px;text-align:right;font-weight:500">591</div><div style="padding:10px 12px;text-align:right;font-weight:500">≈ 295</div></div>
+        <div style="display:grid;grid-template-columns:minmax(0,1.3fr) repeat(4,minmax(0,1fr));border-bottom:1px solid #39466024"><div style="padding:10px 12px">B200</div><div style="padding:10px 12px;text-align:right;font-weight:500">4.50 PFLOPS</div><div style="padding:10px 12px;text-align:right;font-weight:500">8.00 TB/s</div><div style="padding:10px 12px;text-align:right;font-weight:500">563</div><div style="padding:10px 12px;text-align:right;font-weight:500">≈ 281</div></div>
+        <div style="display:grid;grid-template-columns:minmax(0,1.3fr) repeat(4,minmax(0,1fr));border-bottom:1px solid #39466024"><div style="padding:10px 12px">MI300X</div><div style="padding:10px 12px;text-align:right;font-weight:500">2.62 PFLOPS</div><div style="padding:10px 12px;text-align:right;font-weight:500">5.30 TB/s</div><div style="padding:10px 12px;text-align:right;font-weight:500">493</div><div style="padding:10px 12px;text-align:right;font-weight:500">≈ 247</div></div>
+      </div>
+    </div>
+    <p style="margin:12px 0 0;font-size:14px;line-height:22px;color:#0F121AB2;max-width:72ch;text-wrap:pretty">Puntos de codo según las fichas técnicas de cada fabricante. La última columna es el codo dividido por 2 FLOP por byte: cuántos tokens necesita una iteración para que el flujo de pesos deje de ser el cuello de botella. Los lotes de decode rara vez llegan; el prefill troceado está diseñado para llegar.</p>
+  </figure>
+</section>
+
+<section id="decode" data-screen-label="3 Decode, byte a byte" style="padding-bottom:56px;margin-bottom:56px;border-bottom:1px solid #39466024">
+  <p style="margin:0 0 8px;font-size:12px;line-height:18px;font-weight:600;letter-spacing:.02em;color:#7630D7">Sección 3</p>
+  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-feature-settings:'ss02','ss03';text-wrap:balance">Decode, byte a byte</h2>
+  <div style="max-width:66ch">
+    <p style="margin:0 0 16px;font-size:18px;line-height:28px;text-wrap:pretty">El decode es el bucle que produce todos los tokens después del primero, y es la fase en la que el acelerador se pasa casi toda la vida sin hacer apenas cuentas.</p>
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Qué hace un paso</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Para cada secuencia en marcha: coge el embedding del último token (un solo vector <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">1 × d</code>), pásalo por las L capas (proyección QKV, atención contra la caché KV entera de esa secuencia, proyección de salida, MLP) y luego por la cabeza del modelo. Muestrea, añade la nueva K y V a la caché paginada y repite. Con lote B las proyecciones pasan a ser <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">[B × d] @ [d × d']</code>, pero B es diminuto al lado de d (8192 en un modelo de 70B), así que son matmuls flacos.</p>
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Por qué está limitado por ancho de banda</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Cada parámetro cuesta 2 FLOPs por token y hay que traerlo de HBM una vez por paso: 1 byte en FP8, 2 en BF16. Así que la intensidad sobre los pesos es de más o menos <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">2B</code> FLOP por byte. El codo de una H100 en FP8 ronda 590, así que harían falta B ≈ 300 solo para empatar con los pesos. Con B = 1 estás usando una fracción de un 1% del chip. Es una forma carísima de ejecutar <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">memcpy</code>.</p>
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Por qué agrupar en lotes no lo salva del todo</h3>
+    <ul style="margin:0 0 16px;padding-left:1.25em;font-size:16px;line-height:24px">
+      <li style="margin-bottom:8px;text-wrap:pretty"><strong>Las lecturas de KV no se comparten.</strong> Cada secuencia atiende a su propia caché, así que los bytes de KV escalan con <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">B × context × bytes per token</code> (unos 320 KB por token en BF16 para un modelo de clase Llama-3-70B con GQA). Con B = 64 y 4k de contexto, el tráfico de KV ya supera al de pesos. La intensidad se estanca en decenas de FLOP por byte y el MFU de decode se queda en un 10-20% incluso en despliegues bien afinados.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty"><strong>Capacidad.</strong> Toda esa KV tiene que estar residente: <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">B × ctx × bytes/token ≤ HBM − weights</code>. Un lote mayor significa contextos más cortos o más nodos, y cada desalojo que hagas para arreglarlo es un prefill que se repetirá después.</li>
+    </ul>
+  </div>
+
+  <div data-screen-label="Calculadora de decode" style="margin:40px 0;border:1px solid #39466024;border-radius:16px;background:#fff;overflow:hidden">
+    <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;padding:20px 24px 16px;border-bottom:1px solid #39466024"><h4 style="margin:0;font-size:16px;line-height:24px;font-weight:600">Bytes tocados por paso de decode</h4><p style="margin:0;font-size:14px;line-height:22px;color:#0F121AB2;max-width:60ch">Los pesos se leen una vez y los comparte todo el lote; la KV se lee por secuencia.</p></div>
+    <div style="padding:24px;display:grid;gap:24px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px 20px">
+        <div><label for="dModel" style="display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:12px;line-height:18px;font-weight:600;color:#0F1015D9">Modelo</label><div style="position:relative"><select id="dModel" data-k="d.model" defaultValue="dense70" onChange="{{ onCtl }}" style="width:100%;height:36px;padding:0 36px 0 12px;border:1px solid #35415A33;border-radius:8px;background:#fff;color:#0F1015;font-family:inherit;font-size:14px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer" style-hover="border-color:#1C213080" style-focus="border-color:#8B3DFF;outline:2px solid #3D8BFF;outline-offset:2px"><option value="dense70">70B denso con GQA</option><option value="ds">671B MoE con MLA (clase DeepSeek-V3)</option></select><svg style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="#0F1015" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div>
+        <div><label for="dHw" style="display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:12px;line-height:18px;font-weight:600;color:#0F1015D9">Acelerador</label><div style="position:relative"><select id="dHw" data-k="d.hw" defaultValue="h100" onChange="{{ onCtl }}" style="width:100%;height:36px;padding:0 36px 0 12px;border:1px solid #35415A33;border-radius:8px;background:#fff;color:#0F1015;font-family:inherit;font-size:14px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer" style-hover="border-color:#1C213080" style-focus="border-color:#8B3DFF;outline:2px solid #3D8BFF;outline-offset:2px"><option value="h100">H100 SXM, 80 GB</option><option value="b200">B200, 192 GB</option><option value="mi300x">MI300X, 192 GB</option></select><svg style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="#0F1015" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div>
+        <div><label for="dGpus" style="display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:12px;line-height:18px;font-weight:600;color:#0F1015D9">Aceleradores en la réplica</label><div style="position:relative"><select id="dGpus" data-k="d.gpus" defaultValue="8" onChange="{{ onCtl }}" style="width:100%;height:36px;padding:0 36px 0 12px;border:1px solid #35415A33;border-radius:8px;background:#fff;color:#0F1015;font-family:inherit;font-size:14px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer" style-hover="border-color:#1C213080" style-focus="border-color:#8B3DFF;outline:2px solid #3D8BFF;outline-offset:2px"><option value="8">8</option><option value="16">16</option><option value="32">32</option><option value="64">64</option><option value="128">128</option><option value="320">320</option></select><svg style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="#0F1015" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div>
+        <div><label for="dWp" style="display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:12px;line-height:18px;font-weight:600;color:#0F1015D9">Precisión de los pesos</label><div style="position:relative"><select id="dWp" data-k="d.wp" defaultValue="1" onChange="{{ onCtl }}" style="width:100%;height:36px;padding:0 36px 0 12px;border:1px solid #35415A33;border-radius:8px;background:#fff;color:#0F1015;font-family:inherit;font-size:14px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer" style-hover="border-color:#1C213080" style-focus="border-color:#8B3DFF;outline:2px solid #3D8BFF;outline-offset:2px"><option value="1">FP8</option><option value="2">BF16</option><option value="0.5">INT4</option></select><svg style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="#0F1015" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div>
+        <div><label for="dKp" style="display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:12px;line-height:18px;font-weight:600;color:#0F1015D9">Precisión de la KV</label><div style="position:relative"><select id="dKp" data-k="d.kp" defaultValue="2" onChange="{{ onCtl }}" style="width:100%;height:36px;padding:0 36px 0 12px;border:1px solid #35415A33;border-radius:8px;background:#fff;color:#0F1015;font-family:inherit;font-size:14px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer" style-hover="border-color:#1C213080" style-focus="border-color:#8B3DFF;outline:2px solid #3D8BFF;outline-offset:2px"><option value="2">BF16</option><option value="1">FP8</option><option value="0.5">INT4</option></select><svg style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="#0F1015" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div>
+        <div><label for="dB" style="display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:12px;line-height:18px;font-weight:600;color:#0F1015D9"><span>Lote de decode B</span><span style="font-weight:500;color:#0F121AB2;font-variant-numeric:tabular-nums">{{ d.Bv }}</span></label><input id="dB" type="range" data-k="d.B" min="0" max="9" step="1" defaultValue="6" onChange="{{ onCtl }}" style="width:100%;margin:8px 0 0;accent-color:#8B3DFF;cursor:pointer"></div>
+        <div><label for="dCtx" style="display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:12px;line-height:18px;font-weight:600;color:#0F1015D9"><span>Contexto por secuencia</span><span style="font-weight:500;color:#0F121AB2;font-variant-numeric:tabular-nums">{{ d.ctxv }}</span></label><input id="dCtx" type="range" data-k="d.ctx" min="0" max="7" step="1" defaultValue="2" onChange="{{ onCtl }}" style="width:100%;margin:8px 0 0;accent-color:#8B3DFF;cursor:pointer"></div>
+      </div>
+
+      <div style="background:#F3F4F7;border-radius:16px;padding:24px;display:grid;gap:28px">
+        <div>
+          <p style="margin:0 0 10px;font-size:13px;line-height:18px;font-weight:600;color:#0F1015D9">{{ d.hbmLabel }}</p>
+          <div style="position:relative;height:32px;border-radius:8px;background:#E8EAED;overflow:hidden">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:{{ d.wPct }}%;background:#3E424C;transition:{{ tw }}"></div>
+            <div style="position:absolute;left:{{ d.wPct }}%;top:0;bottom:0;width:{{ d.kPct }}%;background:#3D8BFF;transition:{{ tlw }}"></div>
+            <sc-if value="{{ d.over }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:0;bottom:0;left:{{ d.limitPct }}%;width:2px;background:#DB142C"></div></sc-if>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px 20px;font-size:13px;line-height:18px;color:#0F1015D9;margin-top:10px;font-variant-numeric:tabular-nums">
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;vertical-align:-1px;background:#3E424C"></span>{{ d.wLabel }}</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;vertical-align:-1px;background:#3D8BFF"></span>{{ d.kLabel }}</span>
+            <span style="color:{{ d.freeColor }}"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;vertical-align:-1px;background:{{ d.freeSwatch }}"></span>{{ d.freeLabel }}</span>
+          </div>
+        </div>
+        <div>
+          <p style="margin:0 0 12px;font-size:13px;line-height:18px;font-weight:600;color:#0F1015D9">{{ d.rateLabel }}</p>
+          <div style="position:relative;display:grid;gap:12px">
+            <div><div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;line-height:18px;margin-bottom:6px;font-variant-numeric:tabular-nums"><span style="color:#0F1015D9">{{ d.memLabel }}</span><span style="font-weight:600;white-space:nowrap">{{ d.memMs }}</span></div><div style="position:relative;height:20px"><div style="position:absolute;left:0;top:0;bottom:0;width:{{ d.memPct }}%;background:#00C4CC;border-radius:4px;transition:{{ tw }}"></div><div style="position:absolute;left:{{ d.memPct }}%;top:0;bottom:0;width:{{ d.memOvh }}%;background:#8A8F99;border-radius:0 4px 4px 0;transition:{{ tlw }}"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;line-height:18px;margin-bottom:6px;font-variant-numeric:tabular-nums"><span style="color:#0F1015D9">{{ d.compLabel }}</span><span style="font-weight:600;white-space:nowrap">{{ d.compMs }}</span></div><div style="position:relative;height:20px"><div style="position:absolute;left:0;top:0;bottom:0;width:{{ d.compPct }}%;background:#8B3DFF;border-radius:4px;transition:{{ tw }}"></div><div style="position:absolute;left:{{ d.compPct }}%;top:0;bottom:0;width:{{ d.compOvh }}%;background:#8A8F99;border-radius:0 4px 4px 0;transition:{{ tlw }}"></div></div></div>
+            <div style="position:absolute;top:24px;bottom:0;left:{{ d.stepPct }}%;border-left:1.5px dashed #DB142C;transition:{{ tl }}"></div>
+          </div>
+          <div style="position:relative;height:28px;border-top:1px solid #C1C5CD;margin-top:12px;font-size:12px;line-height:16px;color:#0F121AB2;font-variant-numeric:tabular-nums">
+            <sc-for list="{{ d.ticks }}" as="tk" hint-placeholder-count="6"><div style="position:absolute;left:{{ tk.pct }}%;top:0;height:6px;border-left:1px solid #C1C5CD"></div><div style="position:absolute;left:{{ tk.pct }}%;top:10px;transform:translateX(-50%);white-space:nowrap">{{ tk.label }}</div></sc-for>
+            <div style="position:absolute;left:{{ d.stepPct }}%;top:-1px;height:8px;border-left:1.5px dashed #DB142C;transition:{{ tl }}"></div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px 20px;font-size:13px;line-height:18px;color:#0F1015D9;margin-top:4px">
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;vertical-align:-1px;background:#8A8F99"></span>0,25 ms de comunicación y lanzamiento</span>
+            <span><span style="display:inline-block;width:10px;height:2px;margin-right:8px;vertical-align:3px;border-top:1.5px dashed #DB142C"></span>{{ d.stepLabel }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px 24px">
+        <div><p style="margin:0 0 2px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2">Tiempo por paso (suelo de ITL)</p><div style="font-size:28px;line-height:1.15;font-weight:500;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-variant-numeric:tabular-nums">{{ d.step }}<span style="display:block;font-size:13px;line-height:18px;font-weight:400;color:#0F121AB2;letter-spacing:0;font-variation-settings:'opsz' 0;margin-top:2px">por token</span></div></div>
+        <div><p style="margin:0 0 2px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2">Limitado por</p><div style="font-size:21px;line-height:1.3;font-weight:600;letter-spacing:-0.005em">{{ d.bound }}<span style="display:block;font-size:13px;line-height:18px;font-weight:400;color:#0F121AB2;letter-spacing:0;margin-top:2px">{{ d.boundSub }}</span></div></div>
+        <div><p style="margin:0 0 2px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2">Uso del cómputo</p><div style="font-size:28px;line-height:1.15;font-weight:500;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-variant-numeric:tabular-nums">{{ d.util }}<span style="display:block;font-size:13px;line-height:18px;font-weight:400;color:#0F121AB2;letter-spacing:0;font-variation-settings:'opsz' 0;margin-top:2px">de los FLOPS pico</span></div></div>
+        <div><p style="margin:0 0 2px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2">Rendimiento agregado</p><div style="font-size:28px;line-height:1.15;font-weight:500;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-variant-numeric:tabular-nums">{{ d.tps }}<span style="display:block;font-size:13px;line-height:18px;font-weight:400;color:#0F121AB2;letter-spacing:0;font-variation-settings:'opsz' 0;margin-top:2px">tok/s en toda la réplica</span></div></div>
+        <div><p style="margin:0 0 2px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2">Memoria: pesos + KV residente</p><div style="font-size:28px;line-height:1.15;font-weight:500;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-variant-numeric:tabular-nums;color:{{ d.fitColor }}">{{ d.fit }}<span style="display:block;font-size:13px;line-height:18px;font-weight:400;color:#0F121AB2;letter-spacing:0;font-variation-settings:'opsz' 0;margin-top:2px">{{ d.fitSub }}</span></div></div>
+      </div>
+      <p style="margin:0;font-size:14px;line-height:22px;color:#0F121AB2;max-width:72ch;text-wrap:pretty">{{ d.note }}</p>
+    </div>
+  </div>
+
+  <div style="max-width:66ch">
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Qué se hace al respecto</h3>
+    <ul style="margin:0 0 16px;padding-left:1.25em;font-size:16px;line-height:24px">
+      <li style="margin-bottom:8px;text-wrap:pretty"><strong>Compra ancho de banda.</strong> El suelo de ITL ≈ bytes tocados / ancho de banda agregado. Por eso TP = 8 ayuda a la latencia (8× el ancho de banda de HBM) pese al all-reduce por capa, y por eso el decode es la fase que adora la HBM3e y los 8 TB/s de Blackwell.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty"><strong>Reduce el término fijo.</strong> Pesos en FP8 o INT4, y MoE, que solo toca los expertos activos por token (DeepSeek-V3 activa 37B de 671B). MoE es en el fondo un truco de ancho de banda para decode, con una trampa que muestra la calculadora: con lotes grandes los tokens entre todos tocan casi todos los expertos, así que repartes los expertos entre muchos chips (paralelismo de expertos) para que el flujo de pesos por chip siga siendo pequeño.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty"><strong>Reduce el término de KV.</strong> GQA (8 cabezas KV en vez de 64 es 8× menos), MLA (DeepSeek comprime la KV de cada token a un latente de 576 valores por capa, más o menos GQA con dos grupos), KV en FP8 o INT4, e intercalar capas de ventana deslizante con capas de atención completa (Gemma, gpt-oss) para que la mayoría de capas solo guarde los últimos cientos de tokens.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty"><strong>Haz más por byte.</strong> La decodificación especulativa verifica k tokens borrador por cada lectura de pesos, convirtiendo el paso en un miniprefill de k tokens. Es el único truco que sube la intensidad sin necesitar más usuarios. Las cabezas de predicción multitoken son la versión integrada.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty"><strong>Elimina el overhead.</strong> A 2-5 ms por paso, los lanzamientos de kernel, el planificador en Python y 160 all-reduces por paso (dos por capa con TP = 8) pesan. Los grafos CUDA, los kernels de comunicación fusionados y la planificación asíncrona que solapa el planificador en CPU con el paso en GPU (vLLM V1) van todos de no malgastar los pocos milisegundos que tienes.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="stall" data-screen-label="4 El atasco de generación" style="padding-bottom:56px;margin-bottom:56px;border-bottom:1px solid #39466024">
+  <p style="margin:0 0 8px;font-size:12px;line-height:18px;font-weight:600;letter-spacing:.02em;color:#7630D7">Sección 4</p>
+  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-feature-settings:'ss02','ss03';text-wrap:balance">El atasco de generación y dos salidas</h2>
+  <div style="max-width:66ch">
+    <p style="margin:0 0 16px;font-size:18px;line-height:28px;text-wrap:pretty">El batching continuo deja que las peticiones entren y salgan con granularidad de iteración en vez de esperar a la secuencia más lenta de un lote estático. Eso solo ya es una mejora de rendimiento de un orden de magnitud. También crea el atasco: el prefill de una petición nueva se planifica en la misma iteración que el paso de decode de todos los demás.</p>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Un prefill de 20k tokens es un muro de cómputo. Todos los usuarios que están generando esperan a que acabe, y la latencia entre tokens salta de unos milisegundos a cientos. El usuario lo vive como un stream que se congela y luego se pone al día de golpe. Hay tres respuestas: tragárselo, trocear el prefill o mover el prefill a otras máquinas.</p>
+  </div>
+
+  <figure style="margin:32px 0">
+    <div style="background:#F3F4F7;border-radius:16px;padding:24px">
+      <p style="margin:0 0 20px;font-size:14px;line-height:20px;font-weight:600;text-wrap:pretty">El mismo tráfico, dos disposiciones, a escala: un prompt de 20k tokens llega a los 60 ms a una réplica con 64 usuarios</p>
+      <div style="display:grid;grid-template-columns:minmax(120px,170px) minmax(0,1fr);gap:0 16px;align-items:start;font-variant-numeric:tabular-nums">
+        <div style="padding-top:6px"><div style="font-size:14px;line-height:20px;font-weight:600">Co-ubicado</div><div style="font-size:12px;line-height:16px;color:#0F121AB2">un solo pool hace las dos cosas</div></div>
+        <div>
+          <div style="position:relative;height:32px;border-radius:6px;overflow:hidden;background:#E8EAED">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:15%;background-color:#BBF3F4;background-image:repeating-linear-gradient(90deg,#00C4CC 0 2px,transparent 2px 10.112%)"></div>
+            <div style="position:absolute;left:15%;top:0;bottom:0;width:54.17%;background:#8B3DFF;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;line-height:16px;font-weight:600;white-space:nowrap;overflow:hidden;padding:0 8px">prefill de una tacada de 20k tokens, 217 ms</div>
+            <div style="position:absolute;left:69.17%;top:0;bottom:0;right:0;background-color:#BBF3F4;background-image:repeating-linear-gradient(90deg,#00C4CC 0 2px,transparent 2px 4.92%)"></div>
+          </div>
+          <p style="margin:6px 0 0;font-size:13px;line-height:18px;font-weight:600;color:#DB142C">Muro de 217 ms: todos los streams de esta réplica se congelan</p>
+        </div>
+        <div style="padding-top:26px"><div style="font-size:14px;line-height:20px;font-weight:600">Desagregado</div><div style="font-size:12px;line-height:16px;color:#0F121AB2">nodo de prefill</div></div>
+        <div style="padding-top:26px">
+          <div style="position:relative;height:24px;border-radius:6px;overflow:hidden;background:#E8EAED">
+            <div style="position:absolute;left:15%;top:0;bottom:0;width:54.02%;background:#8B3DFF;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;line-height:16px;font-weight:600;white-space:nowrap;overflow:hidden;padding:0 8px">prefill de 216 ms en otro hardware</div>
+          </div>
+          <div style="position:relative;height:30px"><div style="position:absolute;left:69.02%;top:0;height:22px;border-left:2px solid #3D8BFF;margin-left:-1px"></div><svg style="position:absolute;left:69.02%;top:18px;margin-left:-6px" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="#3D8BFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span style="position:absolute;left:calc(69.02% + 10px);top:2px;font-size:12px;line-height:16px;font-weight:600;color:#1A62FF;white-space:nowrap">Traspaso de KV</span></div>
+        </div>
+        <div style="padding-top:2px"><div style="font-size:14px;line-height:20px;font-weight:600">Desagregado</div><div style="font-size:12px;line-height:16px;color:#0F121AB2">nodo de decode</div></div>
+        <div>
+          <div style="position:relative;height:32px;border-radius:6px;overflow:hidden;background-color:#BBF3F4;background-image:repeating-linear-gradient(90deg,#00C4CC 0 2px,transparent 2px 1.5168%)"></div>
+          <p style="margin:6px 0 0;font-size:13px;line-height:18px;color:#0F1015D9">La cadencia no se rompe, así que la latencia entre tokens se mantiene plana.</p>
+        </div>
+        <div></div>
+        <div style="position:relative;height:28px;border-top:1px solid #C1C5CD;margin-top:20px;font-size:12px;line-height:16px;color:#0F121AB2">
+          <div style="position:absolute;left:0;top:0;height:6px;border-left:1px solid #C1C5CD"></div><div style="position:absolute;left:0;top:10px">0 ms</div>
+          <div style="position:absolute;left:12.5%;top:0;height:6px;border-left:1px solid #C1C5CD"></div><div style="position:absolute;left:12.5%;top:10px;transform:translateX(-50%)">50</div>
+          <div style="position:absolute;left:25%;top:0;height:6px;border-left:1px solid #C1C5CD"></div><div style="position:absolute;left:25%;top:10px;transform:translateX(-50%)">100</div>
+          <div style="position:absolute;left:37.5%;top:0;height:6px;border-left:1px solid #C1C5CD"></div><div style="position:absolute;left:37.5%;top:10px;transform:translateX(-50%)">150</div>
+          <div style="position:absolute;left:50%;top:0;height:6px;border-left:1px solid #C1C5CD"></div><div style="position:absolute;left:50%;top:10px;transform:translateX(-50%)">200</div>
+          <div style="position:absolute;left:62.5%;top:0;height:6px;border-left:1px solid #C1C5CD"></div><div style="position:absolute;left:62.5%;top:10px;transform:translateX(-50%)">250</div>
+          <div style="position:absolute;left:75%;top:0;height:6px;border-left:1px solid #C1C5CD"></div><div style="position:absolute;left:75%;top:10px;transform:translateX(-50%)">300</div>
+          <div style="position:absolute;left:87.5%;top:0;height:6px;border-left:1px solid #C1C5CD"></div><div style="position:absolute;left:87.5%;top:10px;transform:translateX(-50%)">350</div>
+          <div style="position:absolute;left:100%;top:0;height:6px;border-left:1px solid #C1C5CD"></div><div style="position:absolute;right:0;top:10px">400</div>
+        </div>
+      </div>
+    </div>
+    <p style="margin:12px 0 0;font-size:14px;line-height:22px;color:#0F121AB2;max-width:72ch;text-wrap:pretty">Cada marca turquesa es un paso de decode de unos 6 ms. En el pool co-ubicado el prefill cae dentro de ese flujo y lo retiene los 217 ms enteros. En la disposición desagregada el prefill corre en otro hardware y solo cruza la KV ya terminada.</p>
+  </figure>
+
+  <div style="max-width:66ch">
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Salida 1: prefill troceado</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">El "batching sin atascos" de Sarathi-Serve. Nunca dejes entrar un prompt entero en una iteración. Cada iteración tiene un presupuesto fijo de tokens, ajustado cerca del punto de codo del chip. Las secuencias en marcha cogen un token cada una primero, porque la ITL es el SLO que estás protegiendo. El presupuesto que sobra va a la cabeza de la cola de prefill: coges esos tokens del prompt pendiente y los añades al mismo lote. El prompt acaba en <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">ceil(N / R)</code> iteraciones en vez de una, y el primer token sale cuando aterriza el último trozo.</p>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Por qué el trozo sale casi gratis: un paso de decode lo domina el leer los pesos una vez desde HBM, y todos los tokens del lote comparten esa lectura. Por debajo del codo, los tokens extra añaden FLOPs que terminan dentro del tiempo que la lectura de memoria iba a tardar igualmente. Un trozo de 256 tokens montado sobre un lote de decode de 64 secuencias cuesta un pequeño porcentaje del paso, no 5× ni de coña. Pasado el codo estás limitado por cómputo y el tiempo por paso crece linealmente con cada token: eso es el atasco. Trocear clava cada iteración en la parte plana de la curva.</p>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Mecánica del kernel: el trozo k atiende a la KV de los trozos 0 a k−1 (ya residentes en bloques paginados) más a sí mismo con máscara causal, así que el kernel de atención ejecuta un lote irregular mixto: muchas consultas de decode de longitud 1 sobre KV larga, más un segmento de prefill de longitud R. FlashAttention varlen y FlashInfer están hechos para esto. El sobrecoste son matmuls más pequeños y los costes fijos de kernel por trozo, un pequeño porcentaje del rendimiento de prefill en las medidas de Sarathi-Serve. Cada trozo vuelve a leer la KV del prefijo, pero una pasada de FlashAttention de una tacada también lo hace por cada tesela de consulta, así que no es un impuesto asintótico.</p>
+    <ul style="margin:0 0 16px;padding-left:1.25em;font-size:16px;line-height:24px">
+      <li style="margin-bottom:8px;text-wrap:pretty">El TTFT empeora: el prompt va al ritmo de las iteraciones de decode.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">El presupuesto es el mando: más grande da mejor TTFT y más rendimiento de prefill, y peor ITL. vLLM lo expone como <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">max_num_batched_tokens</code> con el prefill troceado activado por defecto en V1; SGLang, como <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">--chunked-prefill-size</code>.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">Cuando el lote de decode está gordo queda poco presupuesto para prefill y las peticiones nuevas se mueren de hambre en la cola. Los planificadores limitan la admisión de decode o reservan una cuota de prefill para que el TTFT no se vaya al garete con carga.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">Se combina con la caché de prefijos: solo se trocea el sufijo que no está cacheado.</li>
+    </ul>
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Salida 2: desagregación</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">DistServe, Splitwise, Mooncake: flotas separadas. Las réplicas de prefill se dimensionan y configuran para el TTFT; las de decode, para la ITL y el rendimiento. Pueden usar paralelismos distintos (el prefill quiere TP por cómputo bruto; el decode quiere lotes grandes y cada byte de HBM para la KV) o incluso silicio distinto (chips densos en cómputo para prefill, con mucho ancho de banda para decode). El despliegue de V3 de DeepSeek es el ejemplo público: prefill en unidades de 32 GPUs, decode en unidades de 320 GPUs con EP320.</p>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">El traspaso: tras el prefill, la KV del prompt viaja a un nodo de decode. Por token son <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">2 × layers × kv_heads × head_dim × bytes</code>; un modelo de clase Llama-3-70B (80 capas, 8 cabezas GQA, dimensión de cabeza 128) son unos 320 KB por token en BF16, así que un prompt de 20k son unos 6,4 GB. Sobre el tejido RDMA de un nodo eso son decenas de milisegundos, y se solapa capa a capa (envías la capa L mientras calculas la L + 1), así que queda casi todo oculto.</p>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Los costes: una dependencia de red extra, un problema de colocación más difícil (la caché de prefijos ahora tiene que ser alcanzable desde los dos pools, y por eso Mooncake centra todo su diseño en un almacén KV distribuido) y una proporción entre flota de prefill y de decode que se desajusta según la mezcla de longitudes de prompt de tu tráfico y hay que reajustar.</p>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Trocear arregla la ITL dentro de un solo pool sin ninguna dependencia de red, y por eso es lo que viene por defecto en los motores de código abierto y basta para casi cualquier despliegue propio. A la desagregación recurres cuando quieres escalar prefill y decode por separado, ejecutarlos en hardware distinto, o cuando el tráfico de contexto largo hace inaceptable la penalización de TTFT de llevar un prefill de 200k tokens al ritmo del decode.</p>
+  </div>
+
+  <div data-screen-label="Simulador de atasco" style="margin:40px 0;border:1px solid #39466024;border-radius:16px;background:#fff;overflow:hidden">
+    <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;padding:20px 24px 16px;border-bottom:1px solid #39466024"><h4 style="margin:0;font-size:16px;line-height:24px;font-weight:600">Simulador de atasco: llega un prompt nuevo en la iteración 1</h4><p style="margin:0;font-size:14px;line-height:22px;color:#0F121AB2;max-width:60ch">70B, pesos FP8, KV en BF16, TP = 8, 4k de contexto medio para el lote en marcha.</p></div>
+    <div style="padding:24px;display:grid;gap:24px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px 20px">
+        <div><label for="sN" style="display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:12px;line-height:18px;font-weight:600;color:#0F1015D9"><span>Longitud del prompt</span><span style="font-weight:500;color:#0F121AB2;font-variant-numeric:tabular-nums">{{ s.Nv }}</span></label><input id="sN" type="range" data-k="s.N" min="0" max="5" step="1" defaultValue="3" onChange="{{ onCtl }}" style="width:100%;margin:8px 0 0;accent-color:#8B3DFF;cursor:pointer"></div>
+        <div><label for="sB" style="display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:12px;line-height:18px;font-weight:600;color:#0F1015D9"><span>Lote de decode en marcha B</span><span style="font-weight:500;color:#0F121AB2;font-variant-numeric:tabular-nums">{{ s.Bv }}</span></label><input id="sB" type="range" data-k="s.B" min="3" max="8" step="1" defaultValue="6" onChange="{{ onCtl }}" style="width:100%;margin:8px 0 0;accent-color:#8B3DFF;cursor:pointer"></div>
+        <div><label for="sC" style="display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:12px;line-height:18px;font-weight:600;color:#0F1015D9"><span>Presupuesto de trozo R</span><span style="font-weight:500;color:#0F121AB2;font-variant-numeric:tabular-nums">{{ s.Cv }}</span></label><input id="sC" type="range" data-k="s.C" min="0" max="4" step="1" defaultValue="1" onChange="{{ onCtl }}" style="width:100%;margin:8px 0 0;accent-color:#8B3DFF;cursor:pointer"></div>
+        <div><label for="sHw" style="display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:12px;line-height:18px;font-weight:600;color:#0F1015D9">Acelerador</label><div style="position:relative"><select id="sHw" data-k="s.hw" defaultValue="h100" onChange="{{ onCtl }}" style="width:100%;height:36px;padding:0 36px 0 12px;border:1px solid #35415A33;border-radius:8px;background:#fff;color:#0F1015;font-family:inherit;font-size:14px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer" style-hover="border-color:#1C213080" style-focus="border-color:#8B3DFF;outline:2px solid #3D8BFF;outline-offset:2px"><option value="h100">H100 SXM</option><option value="b200">B200</option><option value="mi300x">MI300X</option></select><svg style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="#0F1015" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div>
+      </div>
+      <div style="background:#F3F4F7;border-radius:16px;padding:24px">
+        <p style="margin:0 0 16px;font-size:14px;line-height:20px;font-weight:600;text-wrap:pretty">Latencia entre tokens de las secuencias que ya están decodificando, iteración a iteración</p>
+        <div ref="{{ chartRef }}" style="min-height:280px">{{ s.itl }}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px 20px;font-size:13px;line-height:18px;color:#0F1015D9;margin-top:12px">
+          <span><span style="display:inline-block;width:14px;height:0;margin-right:8px;vertical-align:3px;border-top:3px solid #DB142C;border-radius:2px"></span>Co-ubicado, prefill de una tacada</span>
+          <span><span style="display:inline-block;width:14px;height:0;margin-right:8px;vertical-align:3px;border-top:3px solid #8B3DFF;border-radius:2px"></span>Co-ubicado, prefill troceado</span>
+          <span><span style="display:inline-block;width:14px;height:0;margin-right:8px;vertical-align:3px;border-top:3px dashed #00AFB5"></span>Desagregado (solo el pool de decode)</span>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <div style="min-width:640px;font-size:14px;line-height:20px;font-variant-numeric:tabular-nums">
+          <div style="display:grid;grid-template-columns:minmax(0,1.6fr) repeat(4,minmax(0,1fr));border-bottom:1px solid #39466024"><div style="padding:0 12px 10px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2">Estrategia</div><div style="padding:0 12px 10px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2;text-align:right">ITL estable</div><div style="padding:0 12px 10px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2;text-align:right">Peor ITL</div><div style="padding:0 12px 10px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2;text-align:right">TTFT del prompt nuevo</div><div style="padding:0 12px 10px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2;text-align:right">Retraso de decode añadido a todos los demás</div></div>
+          <sc-for list="{{ s.rows }}" as="r" hint-placeholder-count="3"><div style="display:grid;grid-template-columns:minmax(0,1.6fr) repeat(4,minmax(0,1fr));border-bottom:1px solid #39466024"><div style="padding:10px 12px">{{ r.name }}</div><div style="padding:10px 12px;text-align:right;font-weight:500">{{ r.steady }}</div><div style="padding:10px 12px;text-align:right;font-weight:500">{{ r.worst }}</div><div style="padding:10px 12px;text-align:right;font-weight:500">{{ r.ttft }}</div><div style="padding:10px 12px;text-align:right;font-weight:500">{{ r.delay }}</div></div></sc-for>
+        </div>
+      </div>
+      <div style="background:#F3F4F7;border-radius:16px;padding:24px">
+        <p style="margin:0 0 16px;font-size:14px;line-height:20px;font-weight:600;text-wrap:pretty">Por qué el trozo es barato: tiempo de iteración frente a tokens en la iteración, para este lote</p>
+        <div style="min-height:260px">{{ s.roof }}</div>
+      </div>
+      <p style="margin:0;font-size:14px;line-height:22px;color:#0F121AB2;max-width:72ch;text-wrap:pretty">{{ s.note }}</p>
+    </div>
+  </div>
+</section>
+
+<section id="cache" data-screen-label="5 Caché KV de prefijos" style="padding-bottom:56px;margin-bottom:56px;border-bottom:1px solid #39466024">
+  <p style="margin:0 0 8px;font-size:12px;line-height:18px;font-weight:600;letter-spacing:.02em;color:#7630D7">Sección 5</p>
+  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-feature-settings:'ss02','ss03';text-wrap:balance">Caché KV de prefijos y sus niveles</h2>
+  <div style="max-width:66ch">
+    <p style="margin:0 0 16px;font-size:18px;line-height:28px;text-wrap:pretty">La unidad de caché es el bloque KV, y la caché es solo de prefijos por una razón física: K se guarda después de RoPE, así que la KV cacheada de un token solo vale en la posición exacta en la que se calculó. Los mismos tokens con otro desplazamiento son un fallo. Todo lo demás se deriva de ahí.</p>
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Bloques y búsqueda</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">La KV vive en bloques fijos de 16 a 64 tokens. Cada bloque lleno recibe un hash de contenido <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">H(parent_hash, token_ids, extras)</code>, donde los extras son todo lo que cambia la KV pero no está en los ids de token: id del adaptador LoRA, hashes de entradas de imagen o audio, una sal por inquilino si te importa el aislamiento. Los parámetros de muestreo quedan fuera, porque la KV no depende de ellos. Encadenar con el hash del padre hace que el hash de un bloque identifique de forma única todo el prefijo hasta él, así que la coincidencia de prefijo más largo es "avanzar hasta el primer fallo". Solo se hace prefill del resto, y el bloque de cola parcial siempre se recalcula. vLLM lo hace con un mapa hash plano; RadixAttention de SGLang usa un árbol radix indexado por ids de token, lo que hace explícita la estructura de prefijos compartidos (prompt de sistema, luego herramientas, luego conversación) y el desalojo consciente del árbol.</p>
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Ciclo de vida en HBM</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Los bloques llevan contador de referencias. Las secuencias en marcha fijan los suyos. Cuando una secuencia termina, sus bloques no se liberan: bajan a refcount cero y siguen siendo direccionables por hash hasta que la presión de memoria los desaloja, por LRU y empezando por las hojas. Así, un chat de varios turnos o un bucle de agente que vuelve a los pocos segundos acierta casi todo su contexto gratis. La sección 6 recorre la contabilidad con un simulador en vivo. Con otro modelo, otra cuantización u otra distribución de paralelismo de tensor, los bloques dejan de ser portables.</p>
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Niveles de almacenamiento</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">La HBM es diminuta y se comparte con los pesos y el tráfico en vivo, así que el desalojo es constante. En vez de tirar un bloque, cópialo de forma asíncrona a la DRAM del host por PCIe; cuando la DRAM se llena, bájalo a NVMe o a un almacén remoto. En la búsqueda, un acierto en un nivel inferior dispara una precarga a HBM antes de planificar la petición, al estilo de un fallo de página. La economía es simple: un nivel solo merece la pena si restaura la KV más rápido de lo que el prefill puede recalcularla, o sea <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">restore bandwidth &gt; bytes per token × prefill tokens per second</code>. La DRAM lo supera de sobra. Una sola unidad NVMe no, y por eso los niveles en disco van en striping o conectados por red, y por eso los modelos con KV pequeña (MLA, KV en FP8) pueden permitirse niveles en disco que uno con KV gorda no: DeepSeek guarda la caché KV en 3FS sobre SSD porque los bytes por token de MLA son mínimos. Sistemas aquí: SGLang HiCache, LMCache, Mooncake Store y el KVBM de NVIDIA Dynamo.</p>
+  </div>
+
+  <div data-screen-label="Calculadora de niveles" style="margin:40px 0;border:1px solid #39466024;border-radius:16px;background:#fff;overflow:hidden">
+    <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;padding:20px 24px 16px;border-bottom:1px solid #39466024"><h4 style="margin:0;font-size:16px;line-height:24px;font-weight:600">¿Merece la pena un nivel?</h4><p style="margin:0;font-size:14px;line-height:22px;color:#0F121AB2;max-width:60ch">Tiempo de restauración de 1k tokens cacheados frente a recalcularlos con prefill.</p></div>
+    <div style="padding:24px;display:grid;gap:24px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px 20px">
+        <div><label for="tKv" style="display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:12px;line-height:18px;font-weight:600;color:#0F1015D9">Bytes de KV por token</label><div style="position:relative"><select id="tKv" data-k="t.kv" defaultValue="327680" onChange="{{ onCtl }}" style="width:100%;height:36px;padding:0 36px 0 12px;border:1px solid #35415A33;border-radius:8px;background:#fff;color:#0F1015;font-family:inherit;font-size:14px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer" style-hover="border-color:#1C213080" style-focus="border-color:#8B3DFF;outline:2px solid #3D8BFF;outline-offset:2px"><option value="327680">320 KB: 70B GQA, BF16</option><option value="163840">160 KB: 70B GQA, FP8</option><option value="70272">69 KB: MLA, BF16</option><option value="35136">34 KB: MLA, FP8</option></select><svg style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="#0F1015" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div>
+        <div><label for="tHw" style="display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:12px;line-height:18px;font-weight:600;color:#0F1015D9">Nodo de prefill</label><div style="position:relative"><select id="tHw" data-k="t.hw" defaultValue="h100" onChange="{{ onCtl }}" style="width:100%;height:36px;padding:0 36px 0 12px;border:1px solid #35415A33;border-radius:8px;background:#fff;color:#0F1015;font-family:inherit;font-size:14px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer" style-hover="border-color:#1C213080" style-focus="border-color:#8B3DFF;outline:2px solid #3D8BFF;outline-offset:2px"><option value="h100">8×H100, FP8</option><option value="b200">8×B200, FP8</option><option value="mi300x">8×MI300X, FP8</option></select><svg style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="#0F1015" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div>
+        <div><label for="tMfu" style="display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:12px;line-height:18px;font-weight:600;color:#0F1015D9"><span>MFU del prefill</span><span style="font-weight:500;color:#0F121AB2;font-variant-numeric:tabular-nums">{{ t.mfuv }}</span></label><input id="tMfu" type="range" data-k="t.mfu" min="20" max="80" step="5" defaultValue="50" onChange="{{ onCtl }}" style="width:100%;margin:8px 0 0;accent-color:#8B3DFF;cursor:pointer"></div>
+        <div><label for="tPcie" style="display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:12px;line-height:18px;font-weight:600;color:#0F1015D9">Restauración desde DRAM del host</label><div style="position:relative"><select id="tPcie" data-k="t.pcie" defaultValue="64" onChange="{{ onCtl }}" style="width:100%;height:36px;padding:0 36px 0 12px;border:1px solid #35415A33;border-radius:8px;background:#fff;color:#0F1015;font-family:inherit;font-size:14px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer" style-hover="border-color:#1C213080" style-focus="border-color:#8B3DFF;outline:2px solid #3D8BFF;outline-offset:2px"><option value="64">Un enlace PCIe 5, 64 GB/s</option><option value="512">Los 8 enlaces, 512 GB/s</option></select><svg style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="#0F1015" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div>
+        <div><label for="tNvme" style="display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:12px;line-height:18px;font-weight:600;color:#0F1015D9"><span>Unidades NVMe en striping</span><span style="font-weight:500;color:#0F121AB2;font-variant-numeric:tabular-nums">{{ t.nvmev }}</span></label><input id="tNvme" type="range" data-k="t.nvme" min="1" max="16" step="1" defaultValue="1" onChange="{{ onCtl }}" style="width:100%;margin:8px 0 0;accent-color:#8B3DFF;cursor:pointer"></div>
+        <div><label for="tNet" style="display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:12px;line-height:18px;font-weight:600;color:#0F1015D9">Almacén KV en red</label><div style="position:relative"><select id="tNet" data-k="t.net" defaultValue="50" onChange="{{ onCtl }}" style="width:100%;height:36px;padding:0 36px 0 12px;border:1px solid #35415A33;border-radius:8px;background:#fff;color:#0F1015;font-family:inherit;font-size:14px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer" style-hover="border-color:#1C213080" style-focus="border-color:#8B3DFF;outline:2px solid #3D8BFF;outline-offset:2px"><option value="25">25 GB/s (una NIC de 200G)</option><option value="50">50 GB/s (una NIC de 400G)</option><option value="200">200 GB/s (4×400G)</option><option value="400">400 GB/s (8×400G)</option></select><svg style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="#0F1015" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div>
+      </div>
+      <div style="background:#F3F4F7;border-radius:16px;padding:24px">
+        <p style="margin:0 0 8px;font-size:14px;line-height:20px;font-weight:600;text-wrap:pretty">Tiempo de restauración de 1k tokens cacheados, escala logarítmica. Las barras a la izquierda de la línea morada se ganan el sueldo.</p>
+        <div style="display:grid;grid-template-columns:minmax(130px,200px) minmax(0,1fr);gap:0 16px">
+          <div style="display:grid;grid-auto-rows:48px;align-items:center;padding-top:36px">
+            <sc-for list="{{ t.rows }}" as="r" hint-placeholder-count="4"><div><div style="font-size:14px;line-height:20px;font-weight:600">{{ r.name }}</div><div style="font-size:12px;line-height:16px;color:#0F121AB2">{{ r.cap }}</div></div></sc-for>
+          </div>
+          <div style="position:relative;padding-top:36px;font-variant-numeric:tabular-nums">
+            <sc-for list="{{ t.grid }}" as="g" hint-placeholder-count="5"><div style="position:absolute;top:36px;bottom:24px;left:{{ g.pct }}%;border-left:1px solid #DDDFE4"></div><div style="position:absolute;bottom:0;left:{{ g.pct }}%;transform:translateX(-50%);font-size:12px;line-height:16px;color:#0F121AB2;white-space:nowrap">{{ g.label }}</div></sc-for>
+            <div style="position:absolute;top:22px;bottom:24px;left:{{ t.recPct }}%;border-left:1.5px dashed #8B3DFF;transition:{{ tl }}"></div>
+            <div style="position:absolute;top:0;left:{{ t.recPct }}%;transform:translateX({{ t.recShift }}%);font-size:12px;line-height:16px;font-weight:600;color:#7630D7;white-space:nowrap;transition:{{ tl }}">{{ t.recLabel }}</div>
+            <div style="display:grid;grid-auto-rows:48px;align-items:center;position:relative">
+              <sc-for list="{{ t.rows }}" as="r" hint-placeholder-count="4"><div style="position:relative;height:20px"><div style="position:absolute;left:0;top:0;bottom:0;width:{{ r.pct }}%;min-width:4px;background:{{ r.color }};border-radius:4px;transition:{{ twb }}"></div><span style="position:absolute;left:{{ r.labelLeft }};right:{{ r.labelRight }};top:50%;transform:translateY(-50%);font-size:12px;line-height:16px;font-weight:600;color:{{ r.labelColor }};white-space:nowrap">{{ r.label }}</span></div></sc-for>
+            </div>
+            <div style="height:24px"></div>
+          </div>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <div style="min-width:560px;font-size:14px;line-height:20px;font-variant-numeric:tabular-nums">
+          <div style="display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.6fr);border-bottom:1px solid #39466024"><div style="padding:0 12px 10px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2">Nivel</div><div style="padding:0 12px 10px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2;text-align:right">Ancho de banda</div><div style="padding:0 12px 10px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2;text-align:right">Restaurar 1k tokens</div><div style="padding:0 12px 10px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2">Veredicto</div></div>
+          <sc-for list="{{ t.table }}" as="r" hint-placeholder-count="5"><div style="display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.6fr);border-bottom:1px solid #39466024;align-items:center"><div style="padding:10px 12px">{{ r.name }}</div><div style="padding:10px 12px;text-align:right;font-weight:500">{{ r.bw }}</div><div style="padding:10px 12px;text-align:right;font-weight:500">{{ r.ms }}</div><div style="padding:8px 12px"><span style="display:inline-block;padding:1px 10px;border-radius:9999px;font-size:12px;line-height:18px;font-weight:600;white-space:nowrap;background:{{ r.tagBg }};color:{{ r.tagFg }}">{{ r.tag }}</span></div></div></sc-for>
+        </div>
+      </div>
+      <p style="margin:0;font-size:14px;line-height:22px;color:#0F121AB2;max-width:72ch;text-wrap:pretty">{{ t.note }}</p>
+    </div>
+  </div>
+
+  <div style="max-width:66ch">
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">A nivel de flota</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Un bloque en la réplica A no le sirve a una petición que cae en la réplica B, así que el enrutador coloca teniendo en cuenta la caché: hashea el prefijo del prompt y enruta de forma pegajosa, o (al estilo Dynamo) hace que los workers publiquen eventos de hash de bloque para que el enrutador puntúe el solapamiento de cada réplica con el prompt entrante y lo pese frente a la carga. En montajes desagregados el almacén KV remoto hace también de ruta de traspaso de prefill a decode, así que un acierto de prefijo en el prefill es una descarga en vez de cómputo.</p>
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Cómo usarla sin cargártela</h3>
+    <ul style="margin:0 0 16px;padding-left:1.25em;font-size:16px;line-height:24px">
+      <li style="margin-bottom:8px;text-wrap:pretty">Lo estático primero, lo volátil al final. Una marca de tiempo o un id de petición cerca del principio del prompt de sistema invalida todos los bloques posteriores. Las definiciones de herramientas y los ejemplos few-shot van antes de la conversación.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">Las APIs con puntos de corte explícitos te dejan fijar un prefijo con un TTL; las automáticas dependen del LRU y del enrutamiento, así que el tráfico a ráfagas sobre el mismo prefijo en una ventana corta acierta y el esporádico no.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">Es reutilización estrictamente de prefijos. Los fragmentos recuperados que aparecen en posiciones distintas en prompts distintos no aciertan, que es lo que intentan parchear los esquemas aproximados como CacheBlend recalculando un subconjunto de tokens.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="blocks" data-screen-label="6 Dentro de la caché en HBM" style="padding-bottom:56px;margin-bottom:56px;border-bottom:1px solid #39466024">
+  <p style="margin:0 0 8px;font-size:12px;line-height:18px;font-weight:600;letter-spacing:.02em;color:#7630D7">Sección 6</p>
+  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-feature-settings:'ss02','ss03';text-wrap:balance">Dentro de la caché en HBM: hashing, refcounts, desalojo</h2>
+  <div style="max-width:66ch">
+    <p style="margin:0 0 16px;font-size:18px;line-height:28px;text-wrap:pretty">Esto es una tabla de páginas con un giro direccionable por contenido. En concreto, lo que hacen vLLM V1 y SGLang.</p>
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Estructuras de datos</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">La HBM se divide en N bloques físicos de <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">block_size</code> tokens (16 en vLLM) para todas las capas a la vez, así que "bloque P7" significa el mismo índice de hueco en los tensores K y V de cada capa. Por bloque: <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">{id, ref_cnt, hash | None, queue_pos}</code>. Por petición: una tabla de bloques, de posición lógica a id físico, que el kernel de atención usa para recolectar. Más un mapa <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">hash → block</code> y una cola de libres (una lista doblemente enlazada). SGLang sustituye el mapa por un árbol radix indexado por ids de token, donde cada nodo posee un tramo de huecos de KV y lleva <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">lock_ref</code> and <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">last_access_time</code>.</p>
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Hashing</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Un bloque se hashea solo cuando está lleno: <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">h_i = H(h_{i−1}, token_ids[i], extras)</code>, con un centinela para <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">h_{−1}</code>. Incluir el padre hace que <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">h_i</code> identifique todo el prefijo, así que una coincidencia en el bloque i implica coincidencias de 0 a i−1 y la coincidencia de prefijo más largo es simplemente "avanzar hasta el primer fallo". El bloque parcial de cola nunca se hashea ni se comparte.</p>
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Admisión</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Para una petición nueva el planificador hashea por adelantado sus bloques completos, consulta el mapa y, por cada acierto, incrementa <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">ref_cnt</code> y desengancha el bloque de la cola de libres si estaba ahí con refcount cero. El primer fallo acaba el recorrido; desde ahí asigna bloques nuevos desde la cabeza de la cola, hace prefill solo de esos tokens e inserta cada hash nuevo según se llena el bloque. Un detalle: si el prompt entero acierta, trata a propósito el último bloque como no cacheado para que haya al menos un token con el que hacer una pasada hacia delante y producir logits.</p>
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Liberación</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Cuando una petición termina o es expulsada, cada bloque de su tabla recibe <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">ref_cnt −= 1</code>. Los bloques que llegan a cero no se ponen a cero ni se desmapean; se añaden al final de la cola de libres con su hash intacto, para que la siguiente petición con ese prefijo acierte. vLLM libera los bloques de una petición en orden inverso a propósito: los bloques de cola quedan más cerca de la cabeza de la cola y se reciclan primero, porque un prompt de sistema compartido vive al principio y un último turno único es lo que menos probabilidades tiene de que alguien reutilice.</p>
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Desalojo</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Perezoso y LRU. Nadie barre. El desalojo pasa cuando una asignación saca la cabeza de la cola y encuentra un bloque que todavía tiene hash: se borra la entrada del mapa (las búsquedas futuras fallan), se entrega el bloque y su KV vieja la sobrescribe el siguiente prefill. El orden de la cola es la política LRU. La versión de SGLang tiene forma de árbol: reúne los nodos hoja con <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">lock_ref == 0</code>, desaloja por orden de <code style="font-family:Menlo,Consolas,monospace;font-size:.85em;background:#F3F4F7;padding:1px 5px;border-radius:4px">last_access_time</code> y, como las hojas se van primero, el prefijo compartido es el que más sobrevive. En cualquier caso, los bloques fijados son intocables; si la réplica se queda de verdad sin memoria, el planificador expulsa una petición en marcha (recalcular después, o mover su KV al host), que es lo que le devuelve bloques.</p>
+  </div>
+
+  <div data-screen-label="Simulador del pool de bloques" style="margin:40px 0;border:1px solid #39466024;border-radius:16px;background:#fff;overflow:hidden">
+    <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;padding:20px 24px 16px;border-bottom:1px solid #39466024"><h4 style="margin:0;font-size:16px;line-height:24px;font-weight:600">Simulador del pool de bloques: ocho bloques físicos, un segmento por bloque</h4><p style="margin:0;font-size:14px;line-height:22px;color:#0F121AB2;max-width:60ch">Admite y termina peticiones; mira cómo se encadenan los hashes, se mueven los refcounts y la cola LRU desaloja.</p></div>
+    <div style="padding:24px;display:grid;gap:24px">
+      <div style="display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center">
+        <button type="button" onClick="{{ onPlay }}" disabled="{{ playing }}" style="height:40px;padding:0 16px;border-radius:12px;border:0;background:#8B3DFF;color:#fff;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background .08s ease" style-hover="background:#7630D7" style-active="background:#612DAE">Reproducir el escenario guiado</button>
+        <button type="button" onClick="{{ onReset }}" disabled="{{ playing }}" style="height:40px;padding:0 16px;border-radius:12px;border:0;background:#fff;color:#0F1015;box-shadow:inset 0 0 0 1px #35415A33;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background .08s ease" style-hover="background:#F3F4F7" style-active="background:#E8EAED">Reiniciar</button>
+        <div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ btns }}" as="b" hint-placeholder-count="4"><button type="button" data-act="{{ b.act }}" data-req="{{ b.req }}" onClick="{{ onBlockBtn }}" style="height:32px;padding:0 12px;border-radius:10px;border:0;background:#fff;color:#0F1015;box-shadow:inset 0 0 0 1px #35415A33;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:background .08s ease" style-hover="background:#F3F4F7" style-active="background:#E8EAED">{{ b.label }}</button></sc-for></div>
+      </div>
+      <p style="margin:0;min-height:22px;font-size:14px;line-height:22px;color:#0F1015D9;text-wrap:pretty">{{ bStatus }}</p>
+      <div style="background:#F3F4F7;border-radius:16px;padding:24px;display:grid;gap:20px">
+        <div style="position:relative">
+          <svg viewBox="0 0 800 56" preserveAspectRatio="none" style="display:block;width:100%;height:56px;overflow:visible" aria-hidden="true">{{ arcs }}</svg>
+          <sc-if value="{{ noArcs }}" hint-placeholder-val="{{ true }}"><p style="position:absolute;left:0;top:14px;margin:0;font-size:12px;line-height:16px;color:#0F121AB2">Los arcos aparecen aquí según los bloques se encadenan con el hash de su padre</p></sc-if>
+          <div style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:1%">
+            <sc-for list="{{ blocks }}" as="b" hint-placeholder-count="8">
+              <div style="border-radius:8px;padding:10px 8px;min-height:108px;background:{{ b.bg }};border:1.5px {{ b.dash }} {{ b.border }};transition:{{ tbg }};overflow:hidden">
+                <div style="display:flex;justify-content:space-between;gap:4px;font-size:12px;line-height:16px"><span style="font-weight:700">{{ b.id }}</span><span style="font-weight:600;color:{{ b.refColor }}">{{ b.ref }}</span></div>
+                <div style="margin-top:14px;font-size:13px;line-height:18px;font-weight:600;text-align:center;color:{{ b.labelColor }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.label }}</div>
+                <div style="margin-top:4px;font-family:Menlo,Consolas,monospace;font-size:11px;line-height:16px;text-align:center;color:#0F121AB2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.hash }}</div>
+                <div style="margin-top:2px;font-size:11px;line-height:16px;text-align:center;color:#0F121AB2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.parent }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div>
+          <p style="margin:0 0 8px;font-size:12px;line-height:18px;color:#0F121AB2;text-wrap:pretty">Cola de libres, la cabeza primero. Una asignación saca la cabeza; si el bloque que sale tiene hash, hay desalojo.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;min-height:44px">
+            <sc-for list="{{ queue }}" as="q" hint-placeholder-count="8"><div style="text-align:center;animation:dcFade .3s ease-out both"><div style="padding:4px 12px;border-radius:6px;font-size:13px;line-height:18px;font-weight:600;background:{{ q.bg }};border:1px {{ q.dash }} {{ q.border }};transition:{{ tbg }}">{{ q.id }}</div><div style="font-size:11px;line-height:16px;color:#0F121AB2;margin-top:2px;min-height:16px">{{ q.tag }}</div></div></sc-for>
+            <sc-if value="{{ queueEmpty }}" hint-placeholder-val="{{ false }}"><p style="margin:0;font-size:13px;line-height:18px;font-weight:600;color:#DB142C">vacía: todos los bloques están fijados por una petición en marcha</p></sc-if>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p style="margin:0 0 8px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2">Peticiones y sus tablas de bloques</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px">
+          <sc-for list="{{ reqs }}" as="r" hint-placeholder-count="4"><div style="border:1.5px solid {{ r.border }};border-radius:12px;padding:10px 14px;font-size:14px;line-height:20px;transition:{{ tbg }}"><div style="display:flex;justify-content:space-between;gap:8px"><strong>{{ r.name }}</strong><span style="font-size:12px;font-weight:600;color:{{ r.statusColor }}">{{ r.status }}</span></div><div style="font-size:13px;line-height:18px;margin-top:4px;color:#0F121AB2;text-wrap:pretty">{{ r.chain }}</div></div></sc-for>
+        </div>
+      </div>
+      <div>
+        <p style="margin:0 0 8px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2">Registro de eventos</p>
+        <div ref="{{ logRef }}" aria-live="polite" style="max-height:230px;overflow:auto;border:1px solid #39466024;border-radius:12px;padding:12px 14px;background:#fff;font-family:Menlo,Consolas,monospace;font-size:12px;line-height:18px">
+          <sc-for list="{{ log }}" as="l" hint-placeholder-count="1"><div style="padding:1px 0;white-space:pre-wrap;color:{{ l.color }};font-weight:{{ l.weight }};animation:dcFade .3s ease-out both">{{ l.msg }}</div></sc-for>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px 20px;font-size:13px;line-height:18px;color:#0F1015D9">
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;vertical-align:-1px;background:#A370FC26;border:1.5px solid #8B3DFF;box-sizing:border-box"></span>refcount &gt; 0: fijado por una petición en marcha</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;vertical-align:-1px;background:#CCE1FF;border:1.5px solid #3D8BFF;box-sizing:border-box"></span>refcount = 0: en caché, direccionable por hash, desalojable</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;vertical-align:-1px;background:#fff;border:1px dashed #8A8F99;box-sizing:border-box"></span>libre, sin hash</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width:66ch">
+    <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Dos trampas</h3>
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Una colisión de hashes entre usuarios serviría la KV de otro, así que el hash es de 64 bits o más, o SHA-256 con una semilla por proceso, y los despliegues paranoicos añaden sal por inquilino. Además los aciertos de caché se observan a través del TTFT, que es un canal lateral temporal capaz de confirmar si alguien en la misma réplica envió hace poco un prefijo concreto. Los montajes multiinquilino o lo aceptan o particionan la caché. Un tema entretenido para la próxima vez que alguien pregunte por qué hoy la caché va más lenta.</p>
+  </div>
+</section>
+
+<section id="sources" data-screen-label="Fuentes y supuestos" style="padding-bottom:24px">
+  <p style="margin:0 0 8px;font-size:12px;line-height:18px;font-weight:600;letter-spacing:.02em;color:#7630D7">Apéndice</p>
+  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-feature-settings:'ss02','ss03';text-wrap:balance">Fuentes y supuestos</h2>
+  <div style="max-width:66ch">
+    <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Material público detrás del compuesto de arriba. Los números pico de los fabricantes son densos (sin esparcidad estructurada). Las estimaciones de tiempo de esta página ignoran los FLOPs de atención salvo que se diga, asumen un reparto perfecto entre la réplica y añaden 0,25 ms fijos por iteración de comunicación y lanzamiento.</p>
+    <ul style="margin:0;padding-left:1.25em;font-size:15px;line-height:22px;color:#0F1015D9">
+      <li style="margin-bottom:8px;text-wrap:pretty">Anthropic, "A postmortem of three recent issues" (September 2025): servir sobre Trainium, TPU y GPUs de NVIDIA; el error de compilación en XLA:TPU y el fallo de enrutamiento por ventana de contexto.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">OpenAI, "Scaling Kubernetes to 7,500 nodes" (2021); Triton (2021); acuerdo con Broadcom para un acelerador propio (octubre de 2025).</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">Kwon et al., "Efficient Memory Management for Large Language Model Serving with PagedAttention" (SOSP 2023): vLLM, caché KV paginada, tablas de bloques.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">Yu et al., "Orca: A Distributed Serving System for Transformer-Based Generative Models" (OSDI 2022): batching a nivel de iteración (continuo).</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">Agrawal et al., "Taming Throughput-Latency Tradeoff in LLM Inference with Sarathi-Serve" (OSDI 2024): prefill troceado, batching sin atascos, presupuestos de tokens.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">Zhong et al., "DistServe" (OSDI 2024); Patel et al., "Splitwise" (ISCA 2024); Qin et al., "Mooncake: A KVCache-centric Disaggregated Architecture for LLM Serving" (FAST 2025).</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">Zheng et al., "SGLang: Efficient Execution of Structured Language Model Programs" (2024): RadixAttention.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">DeepSeek-AI, "DeepSeek-V3 Technical Report" (2024): dimensiones de MLA, 37B activos de 671B, unidades de despliegue de prefill y decode; DeepSeek 3FS (2025) para el almacenamiento de la caché KV.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">Dao et al., FlashAttention y FlashAttention-2; FlashInfer (2025) para atención mixta irregular de prefill y decode.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">Yao et al., "CacheBlend" (EuroSys 2025): reutilización aproximada de KV que no es prefijo.</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">Documentos de diseño de vLLM V1 (caché de prefijos, prefill troceado, planificación asíncrona); SGLang HiCache; LMCache; NVIDIA Dynamo (enrutamiento consciente de la KV, KVBM).</li>
+      <li style="margin-bottom:8px;text-wrap:pretty">Fichas técnicas de NVIDIA H100 y B200; ficha de AMD MI300X; tarjeta de modelo de Meta Llama 3 para la arquitectura de 70B (80 capas, 64 cabezas de consulta, 8 cabezas KV, dimensión de cabeza 128).</li>
+    </ul>
+  </div>
+</section>
+
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;animate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Movimiento&quot;},&quot;speed&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Normal&quot;,&quot;options&quot;:[&quot;Lenta&quot;,&quot;Normal&quot;,&quot;Rápida&quot;],&quot;tsType&quot;:&quot;'Lenta' | 'Normal' | 'Rápida'&quot;,&quot;section&quot;:&quot;Movimiento&quot;}}">
+const H=React.createElement;
+const FONT='"Canva Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif';
+const C={ink:'#0F1015',sub:'#0F1015D9',mute:'#0F121AB2',border:'#39466024',g02:'#E8EAED',g03:'#DDDFE4',g04:'#C1C5CD',g05:'#8A8F99',g06:'#606671',g07:'#3E424C',purple:'#8B3DFF',purple7:'#7630D7',purpleA:'#A370FC26',teal:'#00C4CC',teal4:'#00AFB5',blue:'#3D8BFF',blue6:'#1A62FF',blue2:'#CCE1FF',red:'#DB142C',green:'#008009',panel:'#F3F4F7'};
+const LIT='0 0 0 2px #8B3DFF, 0 2px 4px rgba(24,44,89,.14), 0 6px 12px rgba(24,44,89,.07)';
+const HW={h100:{name:'H100 SXM',hbm:80e9,bw:3.35e12,fp8:1979e12,bf16:989e12},b200:{name:'B200',hbm:192e9,bw:8e12,fp8:4500e12,bf16:2250e12},mi300x:{name:'MI300X',hbm:192e9,bw:5.3e12,fp8:2615e12,bf16:1307e12}};
+const MODELS={dense70:{name:'70B denso, GQA',params:70e9,active:70e9,layers:80,dModel:8192,kvElems:2*80*8*128,moe:null},ds:{name:'671B MoE, MLA',params:671e9,active:37e9,layers:61,dModel:7168,kvElems:61*576,moe:{nonExpert:17e9,expert:654e9,nExperts:256,topk:8}}};
+const OVERHEAD=0.25e-3,P70=70e9,L70=80,D70=8192,KVB70=327680,CTX=4096,NGPU=8;
+const Ns=[4096,8192,16384,20480,32768,65536],Cs=[256,512,1024,2048,4096];
+const iter=(hw,B,p,done)=>{const bw=hw.bw*NGPU,F=hw.fp8*NGPU;const kvDec=B*CTX*KVB70;const kvPre=p>0?KVB70*(done+p/2)*Math.ceil(p/128):0;const flops=B*(2*P70+4*CTX*D70*L70)+p*2*P70+4*p*(done+p/2)*D70*L70;return Math.max((P70+kvDec+kvPre)/bw,flops/F)+OVERHEAD;};
+const prefillAlone=(hw,N)=>{const bw=hw.bw*NGPU,F=hw.fp8*NGPU;const kvPre=KVB70*(N/2)*Math.ceil(N/128);return Math.max((P70+kvPre)/bw,(N*2*P70+2*N*N*D70*L70)/F)+OVERHEAD;};
+const fmt={
+  ms(v){if(!isFinite(v))return 'n/d';if(v>=1000)return (v/1000).toFixed(2)+' s';if(v>=100)return v.toFixed(0)+' ms';if(v>=10)return v.toFixed(1)+' ms';return v.toFixed(2)+' ms';},
+  bytes(b){if(b>=1e12)return (b/1e12).toFixed(2)+' TB';if(b>=1e10)return (b/1e9).toFixed(0)+' GB';if(b>=1e9)return (b/1e9).toFixed(1)+' GB';if(b>=1e6)return (b/1e6).toFixed(0)+' MB';return (b/1e3).toFixed(0)+' KB';},
+  pct(v){if(v<1)return v.toFixed(2)+'%';if(v<10)return v.toFixed(1)+'%';return v.toFixed(0)+'%';},
+  tok(v){if(v>=1e6)return (v/1e6).toFixed(2)+'M';if(v>=1e3)return (v/1e3).toFixed(1)+'k';return v.toFixed(0);},
+  k(v){if(v<1000)return String(v);const t=Math.round(v/1024*10)/10;return String(t).replace(/\.0$/,'')+'k';},
+  gbps(v){return v>=1000?(v/1000).toFixed(2)+' TB/s':v.toFixed(0)+' GB/s';},
+  tflops(v){return v>=1e15?(v/1e15).toFixed(2)+' PFLOPS':(v/1e12).toFixed(0)+' TFLOPS';}
+};
+const nice=x=>{const p=Math.pow(10,Math.floor(Math.log10(x)));const m=x/p;return (m<1.5?1:m<3.5?2:m<7.5?5:10)*p;};
+const TRACE=[
+  {n:'client',t:'1. El cliente abre una petición HTTPS y se queda esperando el stream SSE.'},
+  {n:'gateway',t:'2. Gateway: TLS, autenticación, cubos de tokens por organización, validación y medición. Ningún acelerador involucrado.'},
+  {n:'sched',t:'3. Planificador: elige la flota y luego la réplica con mejor solapamiento de caché de prefijos que no esté ahogada de presión de KV.'},
+  {n:'prefill',t:'4. Réplica de prefill: una pasada limitada por cómputo sobre el prompt produce la caché KV y el primer token.'},
+  {n:'decode',t:'5. Réplica de decode: la KV llega por RDMA; un paso limitado por ancho de banda por token, en lote con otros usuarios.'},
+  {n:'client',t:'6. Los tokens vuelven en streaming por el gateway a medida que se producen. Listo.'}
+];
+const DEFS={A:['sys','tools','turn1','A-turn2'],B:['sys','tools','turn1','B-turn2'],C:['sys','tools','C-turn1'],D:['sys-v2','D-turn1','D-turn2']};
+const SCRIPT=[['admit','A'],['admit','B'],['finish','A'],['admit','C'],['admit','D'],['finish','B'],['admit','A'],['finish','D'],['admit','B'],['finish','C']];
+const WHY=['A reserva cuatro bloques nuevos; cada hash se encadena con el anterior.','B acierta los tres bloques de prefijo compartido (los refcounts suben a 2) y reserva uno.','A termina: solo su bloque de cola único llega a ref 0 y entra en la cola; el prefijo compartido sigue fijado por B.','C acierta el prompt de sistema y las herramientas, y reserva un bloque.','D tiene otro prompt de sistema: tres fallos. La tercera asignación saca el viejo bloque de cola de A y desaloja su hash.','B termina: su cola y turn1 bajan a ref 0 en orden inverso, así que la cola queda más cerca de la cabeza.','A vuelve: sys, tools y turn1 aciertan (turn1 se rescata de la cola de libres); A-turn2 fue desalojado, así que falla y desaloja a su vez la cola de B.','D termina: sus tres bloques son únicos y todos van a la cola.','B vuelve: tres aciertos y un fallo que recicla uno de los bloques cacheados de D.','C termina: su bloque único baja a ref 0; el prefijo compartido sigue fijado por A y B.'];
+const fnv=s=>{let h=0x811c9dc5;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0;}return h.toString(16).padStart(8,'0').slice(0,6);};
+const chainFor=segs=>{const out=[];let parent='root';segs.forEach(seg=>{const h=fnv(parent+'|'+seg);out.push({seg,h,parent});parent=h;});return out;};
+const txt=(key,x,y,s,o)=>{o=o||{};return H('text',{key,x,y,textAnchor:o.anchor||'start',dominantBaseline:'central',fontSize:o.size||12,fontWeight:o.weight||400,fill:o.fill||C.mute,fontFamily:FONT,stroke:o.halo?C.panel:'none',strokeWidth:o.halo?4:0,strokeLinejoin:'round',style:{paintOrder:'stroke'}},s);};
+
+class Component extends DCLogic {
+  state={nav:'path',cw:860,d:{model:'dense70',hw:'h100',gpus:8,wp:1,kp:2,B:6,ctx:2},s:{N:3,B:6,C:1,hw:'h100'},t:{kv:327680,hw:'h100',mfu:50,pcie:64,nvme:1,net:50},trace:-1,tick:0};
+  chartRef=React.createRef();
+  logRef=React.createRef();
+  timers=[];
+  S=this.freshSim();
+  lastLogLen=0;
+  get anim(){return this.props.animate!==false;}
+  get speed(){return ({Lenta:1.6,Normal:1,'Rápida':0.6})[this.props.speed]||1;}
+  tr=(p,ms)=>this.anim?p+' '+(ms||400)+'ms cubic-bezier(.2,.7,.2,1)':'none';
+  after(fn,ms){const t=setTimeout(fn,ms);this.timers.push(t);return t;}
+  componentDidMount(){
+    const ids=['path','phases','decode','stall','cache','blocks','sources'];
+    if('IntersectionObserver' in window){this.io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)this.setState({nav:e.target.id});});},{rootMargin:'-15% 0px -70% 0px'});ids.forEach(id=>{const el=document.getElementById(id);if(el)this.io.observe(el);});}
+    if('ResizeObserver' in window&&this.chartRef.current){this.ro=new ResizeObserver(es=>{const w=Math.floor(es[0].contentRect.width);if(w>0&&Math.abs(w-this.state.cw)>2)this.setState({cw:w});});this.ro.observe(this.chartRef.current);}
+  }
+  componentDidUpdate(){const l=this.logRef.current;if(l&&this.S.log.length!==this.lastLogLen){this.lastLogLen=this.S.log.length;l.scrollTop=l.scrollHeight;}}
+  componentWillUnmount(){this.timers.forEach(clearTimeout);if(this.io)this.io.disconnect();if(this.ro)this.ro.disconnect();}
+
+  onCtl=e=>{const el=e.target,parts=el.dataset.k.split('.'),raw=el.value;const v=raw!==''&&!isNaN(+raw)?+raw:raw;this.setState(s=>({[parts[0]]:Object.assign({},s[parts[0]],{[parts[1]]:v})}));};
+
+  /* ---------------- decode calculator */
+  decode(){
+    const d=this.state.d,m=MODELS[d.model],hw=HW[d.hw],n=d.gpus,wB=d.wp,kB=d.kp,B=Math.pow(2,d.B),ctx=1024*Math.pow(2,d.ctx);
+    const bw=hw.bw*n,F=(wB>=2?hw.bf16:hw.fp8)*n,hbm=hw.hbm*n;
+    let wRead;if(m.moe){const frac=1-Math.pow(1-m.moe.topk/m.moe.nExperts,B);wRead=(m.moe.nonExpert+m.moe.expert*frac)*wB;}else wRead=m.params*wB;
+    const wTotal=m.params*wB,kvRead=B*ctx*m.kvElems*kB;
+    const flops=B*(2*m.active+4*ctx*m.dModel*m.layers);
+    const tMem=(wRead+kvRead)/bw,tComp=flops/F,tStep=Math.max(tMem,tComp)+OVERHEAD;
+    const util=flops/(F*tStep)*100,tps=B/tStep,need=wTotal+kvRead,fits=need<=hbm*0.9,over=need>hbm;
+    const total=Math.max(hbm,need),pct=x=>x/total*100;
+    const tScale=tStep*1.18,tp=x=>x/tScale*100;
+    const tickStep=nice(tScale*1e3/5),ticks=[];for(let t=0;t<=tScale*1e3+1e-9;t+=tickStep)ticks.push({pct:t/(tScale*1e3)*100,label:t===0?'0 ms':String(Math.round(t*100)/100)});
+    const flopsLabel=flops>=1e15?(flops/1e15).toFixed(1)+' PFLOP':flops>=1e12?(flops/1e12).toFixed(1)+' TFLOP':(flops/1e9).toFixed(0)+' GFLOP';
+    let note=`Los FLOPs incluyen 2 por parámetro activo y token más la atención sobre ${fmt.k(ctx)} tokens; el tiempo asume un reparto perfecto entre ${n} chips. `;
+    if(m.moe)note+=`Los bytes de pesos MoE asumen ${m.moe.topk} de ${m.moe.nExperts} expertos enrutados por token; con ${B} tokens en el paso se toca un ${(100*(1-Math.pow(1-m.moe.topk/m.moe.nExperts,B))).toFixed(0)}% estimado de todos los expertos, y por eso el decode MoE se reparte entre muchos chips con paralelismo de expertos. `;
+    if(!fits)note+=`Los pesos más la KV residente superan el 90% de la HBM de la réplica: acorta el contexto, reduce el lote, cuantiza la KV o añade aceleradores.`;
+    return {Bv:String(B),ctxv:fmt.k(ctx),hbmLabel:`HBM de la réplica: ${fmt.bytes(hbm)} entre ${n} chips. Todo lo de abajo tiene que caber, o se expulsa una petición.`,
+      wPct:pct(wTotal),kPct:pct(kvRead),over,limitPct:over?pct(hbm):100,
+      wLabel:`Pesos ${fmt.bytes(wTotal)}`,kLabel:`KV residente ${fmt.bytes(kvRead)} (${B} × ${fmt.k(ctx)} tokens)`,
+      freeLabel:over?`Límite de HBM: ${fmt.bytes(need-hbm)} no caben`:`Libre ${fmt.bytes(hbm-need)}`,freeColor:over?C.red:C.sub,freeSwatch:over?C.red:C.g02,
+      rateLabel:`Un paso de decode: los bytes fluyen a ${fmt.gbps(bw/1e9)}, las cuentas van a ${fmt.tflops(F)}, y la más larga marca el ritmo.`,
+      memPct:tp(tMem),compPct:tp(tComp),memOvh:tMem>=tComp?tp(OVERHEAD):0,compOvh:tComp>tMem?tp(OVERHEAD):0,
+      memLabel:`Traer ${fmt.bytes(wRead+kvRead)} de pesos y KV`,memMs:fmt.ms(tMem*1e3),compLabel:`${flopsLabel} de cuentas`,compMs:fmt.ms(tComp*1e3),
+      stepPct:tp(tStep),stepLabel:`paso = ${fmt.ms(tStep*1e3)}`,ticks,
+      step:fmt.ms(tStep*1e3),bound:tMem>=tComp?'Ancho de banda HBM':'Cómputo',boundSub:`${fmt.ms(tMem*1e3)} de memoria frente a ${fmt.ms(tComp*1e3)} de cuentas`,util:fmt.pct(util),tps:fmt.tok(tps),
+      fit:fmt.bytes(need),fitSub:`de ${fmt.bytes(hbm)}${fits?'':' — no cabe'}`,fitColor:fits?C.ink:C.red,note};
+  }
+
+  /* ---------------- stall simulator */
+  stall(){
+    const s=this.state.s,hw=HW[s.hw],N=Ns[s.N],B=Math.pow(2,s.B),Cc=Cs[s.C];
+    const ITERS=60,steady=iter(hw,B,0,0);
+    const dis=new Array(ITERS).fill(steady),col=dis.slice(),chk=dis.slice();
+    col[0]=iter(hw,B,N,0);
+    let done=0,k=0,ttftChunk=0;while(done<N){const p=Math.min(Cc,N-done);const t=iter(hw,B,p,done);if(k<ITERS)chk[k]=t;ttftChunk+=t;done+=p;k++;}
+    const tPf=prefillAlone(hw,N),tTx=N*KVB70/100e9;
+    const chkMax=Math.max.apply(null,chk);
+    const rows=[['Co-ubicado, prefill de una tacada',steady,col[0],col[0],col[0]-steady],['Co-ubicado, prefill troceado (R = '+Cc+')',steady,chkMax,ttftChunk,ttftChunk-k*steady],['Desagregado',steady,steady,Math.max(tPf,tTx)+steady,0]].map(r=>({name:r[0],steady:fmt.ms(r[1]*1e3),worst:fmt.ms(r[2]*1e3),ttft:fmt.ms(r[3]*1e3),delay:fmt.ms(r[4]*1e3)}));
+    const bw=hw.bw*NGPU,F=hw.fp8*NGPU,floor=(P70+B*CTX*KVB70)/bw,tokCost=2*P70/F,ridge=floor/tokCost;
+    const Tmax=Math.max(4096,Math.ceil((B+Cc)*1.3/512)*512),tOf=t=>Math.max(floor,t*tokCost)+OVERHEAD;
+    const note=`TTFT desagregado = prefill en un nodo ${hw.name} aparte (${fmt.ms(tPf*1e3)}) solapado con una transferencia de KV de ${fmt.bytes(N*KVB70)} a unos 100 GB/s (${fmt.ms(tTx*1e3)}), más un paso de decode. El prefill troceado necesita ${k} iteraciones aquí. Los FLOPs de atención están incluidos; las pérdidas de eficiencia de kernel con trozos pequeños no, así que el TTFT troceado real es algo peor que el mostrado.`;
+    return {Nv:fmt.k(N)+' tokens',Bv:String(B),Cv:String(Cc),rows,note,itl:this.itlChart({col,chk,dis,steady,ITERS,k,chkMax}),roof:this.roofChart({B,Cc,floor,ridge,Tmax,tOf,N,col0:col[0]})};
+  }
+  itlChart(o){
+    const W=this.state.cw,Hh=280,l=60,r=16,top=28,bot=44,tr=this.tr;
+    const {col,chk,dis,steady,ITERS,k,chkMax}=o;
+    const yMaxMs=Math.max(steady*1e3*1.6,chkMax*1e3*1.25),stepMs=nice(yMaxMs/4);
+    const ly=v=>{const ms=Math.min(v*1e3,yMaxMs);return Hh-bot-(ms/yMaxMs)*(Hh-bot-top);},lx=i=>l+(i/(ITERS-1))*(W-l-r);
+    const kids=[];
+    for(let ms=0,i=0;ms<=yMaxMs+1e-9;ms+=stepMs,i++){kids.push(H('g',{key:'g'+i,style:{transform:`translate(0px,${ly(ms/1e3)}px)`,transition:tr('transform')}},H('line',{x1:l,x2:W-r,y1:0,y2:0,stroke:C.g03}),txt('t',l-8,0,(Math.round(ms*100)/100)+' ms',{anchor:'end'})));}
+    kids.push(H('line',{key:'ax',x1:l,x2:W-r,y1:Hh-bot,y2:Hh-bot,stroke:C.g04}));
+    [1,10,20,30,40,50,60].forEach(i=>kids.push(txt('x'+i,lx(i-1),Hh-bot+16,String(i),{anchor:'middle'})));
+    kids.push(txt('xl',(l+W-r)/2,Hh-8,'Iteración. El prompt nuevo llega en la iteración 1.',{anchor:'middle'}));
+    const path=arr=>arr.map((v,i)=>(i?'L':'M')+lx(i).toFixed(1)+' '+ly(v).toFixed(1)).join(' ');
+    const line=(key,arr,color,w,dash)=>{const d=path(arr);return H('path',{key,d,fill:'none',stroke:color,strokeWidth:w,strokeLinejoin:'round',strokeLinecap:'round',strokeDasharray:dash,style:{d:`path("${d}")`,transition:tr('d')}});};
+    kids.push(line('dis',dis,C.teal4,2.5,'6 6'),line('col',col,C.red,2.5),line('chk',chk,C.purple,3));
+    kids.push(H('g',{key:'m',style:{transform:`translate(${lx(0)}px,${ly(col[0])}px)`,transition:tr('transform')}},H('circle',{r:5.5,fill:C.red,stroke:C.panel,strokeWidth:2}),txt('t',12,1,`prefill de una tacada: ${fmt.ms(col[0]*1e3)} de atasco${col[0]*1e3>yMaxMs?', fuera del gráfico':''}`,{fill:C.ink,weight:600,halo:true})));
+    if(k>1){const xi=Math.min(k,ITERS)-1;kids.push(H('g',{key:'mc',style:{transform:`translate(${lx(xi)}px,${ly(chkMax)-16}px)`,transition:tr('transform')}},txt('t',0,0,`troceado: +${fmt.ms((chkMax-steady)*1e3)} por iteración durante ${k} iteraciones`,{fill:C.purple7,weight:600,halo:true,anchor:k>ITERS*0.8?'end':'middle'})));}
+    kids.push(H('g',{key:'md',style:{transform:`translate(${W-r}px,${ly(steady)+16}px)`,transition:tr('transform')}},txt('t',0,0,`desagregado: plano en ${fmt.ms(steady*1e3)}`,{fill:C.ink,weight:600,halo:true,anchor:'end'})));
+    return H('svg',{width:'100%',height:Hh,viewBox:`0 0 ${W} ${Hh}`,role:'img','aria-label':'Latencia entre tokens por iteración para tres estrategias de planificación',style:{display:'block',overflow:'visible',fontVariantNumeric:'tabular-nums'}},kids);
+  }
+  roofChart(o){
+    const W=this.state.cw,Hh=260,l=60,r=16,top=24,bot=44,tr=this.tr;
+    const {B,Cc,floor,ridge,Tmax,tOf,N,col0}=o;
+    const tTop=tOf(Tmax)*1.05,xs=t=>l+t/Tmax*(W-l-r),ys=t=>Hh-bot-(t/tTop)*(Hh-bot-top);
+    const kids=[];
+    if(ridge<Tmax){
+      kids.push(H('rect',{key:'rm',x:l,y:top,width:Math.max(0,xs(ridge)-l),height:Hh-bot-top,fill:C.teal,opacity:.12,style:{width:Math.max(0,xs(ridge)-l)+'px',transition:tr('width')}}));
+      kids.push(H('rect',{key:'rc',x:xs(ridge),y:top,width:Math.max(0,W-r-xs(ridge)),height:Hh-bot-top,fill:C.purple,opacity:.08,style:{x:xs(ridge)+'px',width:Math.max(0,W-r-xs(ridge))+'px',transition:tr('x')+', '+tr('width')}}));
+      kids.push(txt('lm',l+10,top+14,'limitado por memoria: los tokens extra salen gratis',{fill:C.teal4,weight:600}));
+      kids.push(txt('lc',W-r-10,top+14,'limitado por cómputo: cada token cuesta tiempo',{fill:C.purple7,weight:600,anchor:'end'}));
+      kids.push(H('g',{key:'ridge',style:{transform:`translate(${xs(ridge)}px,0px)`,transition:tr('transform')}},H('line',{x1:0,x2:0,y1:top,y2:Hh-bot,stroke:C.g05,strokeDasharray:'4 4'}),txt('t',6,top+34,`codo: ${Math.round(ridge)} tokens por iteración con el tráfico de KV de este lote`,{halo:true})));
+    }
+    kids.push(H('line',{key:'xa',x1:l,x2:W-r,y1:Hh-bot,y2:Hh-bot,stroke:C.g04}),H('line',{key:'ya',x1:l,x2:l,y1:top,y2:Hh-bot,stroke:C.g04}));
+    const yStep=nice(tTop*1e3/4);for(let ms=0,i=0;ms<=tTop*1e3+1e-9;ms+=yStep,i++){kids.push(H('g',{key:'y'+i,style:{transform:`translate(0px,${ys(ms/1e3)}px)`,transition:tr('transform')}},H('line',{x1:l-4,x2:l,y1:0,y2:0,stroke:C.g04}),txt('t',l-8,0,(Math.round(ms*100)/100)+' ms',{anchor:'end'})));}
+    const pts=[];for(let t=0;t<=Tmax+1e-9;t+=Tmax/60)pts.push((pts.length?'L':'M')+xs(t).toFixed(1)+' '+ys(tOf(t)).toFixed(1));const d=pts.join(' ');
+    kids.push(H('path',{key:'curve',d,fill:'none',stroke:C.ink,strokeWidth:2,strokeLinejoin:'round',style:{d:`path("${d}")`,transition:tr('d')}}));
+    kids.push(H('g',{key:'floor',style:{transform:`translate(0px,${ys(floor+OVERHEAD)}px)`,transition:tr('transform')}},H('line',{x1:l,x2:W-r,y1:0,y2:0,stroke:C.g05,strokeDasharray:'4 4'}),txt('t',W-r,-12,`suelo de memoria: ${fmt.ms((floor+OVERHEAD)*1e3)}`,{anchor:'end',halo:true})));
+    const mark=(key,t,color,label,dy)=>{const X=Math.min(t,Tmax);const anchor=X>Tmax*0.8?'end':X<Tmax*0.2?'start':'middle';return H('g',{key,style:{transform:`translate(${xs(X)}px,${ys(tOf(X))}px)`,transition:tr('transform')}},H('circle',{r:6,fill:color,stroke:C.panel,strokeWidth:2}),txt('t',0,dy,label,{fill:C.ink,weight:600,halo:true,anchor}));};
+    kids.push(mark('mb',B,C.teal4,`solo decode, ${B} tokens: ${fmt.ms(tOf(B)*1e3)}`,-24),mark('mc',B+Cc,C.purple,`+ trozo de ${Cc} tokens: ${fmt.ms(tOf(B+Cc)*1e3)}`,24));
+    [0,.25,.5,.75,1].forEach(f=>kids.push(txt('x'+f,xs(f*Tmax),Hh-bot+16,fmt.k(Math.round(f*Tmax)),{anchor:'middle'})));
+    kids.push(txt('xl',(l+W-r)/2,Hh-8,`Tokens en la iteración. El prefill de una tacada de ${fmt.k(N)} tokens queda muy a la derecha, fuera, en ${fmt.ms(col0*1e3)}.`,{anchor:'middle'}));
+    return H('svg',{width:'100%',height:Hh,viewBox:`0 0 ${W} ${Hh}`,role:'img','aria-label':'Tiempo de iteración frente a tokens por iteración',style:{display:'block',overflow:'visible',fontVariantNumeric:'tabular-nums'}},kids);
+  }
+
+  /* ---------------- tier break-even */
+  tier(){
+    const t=this.state.t,kvb=t.kv,hw=HW[t.hw],mfu=t.mfu/100,pcie=t.pcie,drives=t.nvme,net=t.net;
+    const F=hw.fp8*8,tokPerS=F*mfu/(2*P70),recompute=1000/tokPerS,breakEven=kvb*tokPerS;
+    const kvLabel=({327680:'320 KB',163840:'160 KB',70272:'69 KB',35136:'34 KB'})[kvb]||fmt.bytes(kvb);
+    const tiers=[{name:'DRAM del host por PCIe',cap:'1 a 2 TB por nodo',bw:pcie*1e9},{name:drives>1?`NVMe local, ${drives} unidades en striping`:'NVMe local, una unidad',cap:'decenas de TB por nodo',bw:drives*7e9},{name:'Almacén KV en red por RDMA',cap:'petabytes, compartidos por la flota',bw:net*1e9}].map(x=>Object.assign(x,{ms:1000*kvb/x.bw*1e3}));
+    const recMs=recompute*1e3;
+    const LX=ms=>(Math.log10(Math.max(0.1,Math.min(1000,ms)))+1)/4*100;
+    const bar=(name,cap,pct,color,label,ok)=>{const inside=pct>58;return {name,cap,pct,color,label,labelLeft:inside?'auto':`calc(${pct}% + 8px)`,labelRight:inside?`calc(${100-pct}% + 8px)`:'auto',labelColor:inside?'#fff':(ok?C.green:C.red)};};
+    const rows=[bar('HBM','ya residente',0,C.teal4,'0 ms: el nivel caliente',true)].concat(tiers.map(x=>{const ok=x.ms<recMs;return bar(x.name,`${x.cap}, ${fmt.gbps(x.bw/1e9)}`,LX(x.ms),ok?C.green:C.red,`${fmt.ms(x.ms)}${ok?'':', más lento que recalcular'}`,ok);}));
+    rows[0].labelColor=C.sub;rows[0].labelLeft='calc(0% + 12px)';
+    const grid=[0.1,1,10,100,1000].map(v=>({pct:LX(v),label:v>=1000?'1 s':v+' ms'}));
+    const recPct=LX(recMs);
+    const table=[{name:'HBM (ya residente)',bw:fmt.gbps(hw.bw*8/1e9),ms:'0',tag:'nivel caliente',tagBg:C.border,tagFg:C.ink}]
+      .concat(tiers.map(x=>({name:x.name,bw:fmt.gbps(x.bw/1e9),ms:fmt.ms(x.ms),tag:x.ms<recMs?`${(recMs/x.ms).toFixed(1)}× más rápido que recalcular`:`${(x.ms/recMs).toFixed(1)}× más lento que recalcular`,tagBg:x.ms<recMs?'#C3EAC4':'#FFD6D8',tagFg:x.ms<recMs?'#133416':'#501B21'})))
+      .concat([{name:`Recalcular con prefill al ${(mfu*100).toFixed(0)}% de MFU`,bw:'',ms:fmt.ms(recMs),tag:'referencia',tagBg:C.border,tagFg:C.ink}]);
+    return {mfuv:(mfu*100).toFixed(0)+'%',nvmev:String(drives),rows,grid,recPct,recShift:recPct>55?-100:0,recLabel:`Recalcular con prefill: ${fmt.ms(recMs)} a ${fmt.tok(tokPerS)} tok/s`,table,
+      note:`Ancho de banda de restauración de equilibrio = ${kvLabel} por token × ${fmt.tok(tokPerS)} tokens por segundo = ${fmt.gbps(breakEven/1e9)}. Cualquier cosa más lenta sale mejor tirando el prefijo y recalculándolo. Las restauraciones también se pueden encadenar bajo la planificación, que es como un nivel un poco por debajo del equilibrio todavía se gana el sueldo.`};
+  }
+
+  /* ---------------- block pool simulator */
+  freshSim(){const N=8,blocks=[];for(let i=0;i<N;i++)blocks.push({id:'P'+i,ref:0,hash:null,label:null,parent:null});const reqs={};Object.keys(DEFS).forEach(k=>reqs[k]={status:'idle',table:[]});return {N,blocks,map:{},queue:blocks.map((_,i)=>i),reqs,log:[{msg:'reinicio: 8 bloques libres, mapa de hashes vacío, cola de P0 a P7',cls:''}],playing:false,status:''};}
+  slog(msg,cls){this.S.log.push({msg,cls:cls||''});if(this.S.log.length>80)this.S.log.shift();}
+  bump(){this.setState(s=>({tick:s.tick+1}));}
+  unlink(idx){const q=this.S.queue.indexOf(idx);if(q>=0)this.S.queue.splice(q,1);}
+  admit(name){
+    const S=this.S,r=S.reqs[name];if(r.status==='running'){this.slog(`${name}: ya está en marcha`);return;}
+    const segs=DEFS[name],chain=chainFor(segs),table=[];let i=0;
+    this.slog(`admitir ${name}: prompt = [${segs.join(', ')}]`);
+    while(i<segs.length&&S.map[chain[i].h]!==undefined){const idx=S.map[chain[i].h],b=S.blocks[idx];if(b.ref===0){this.unlink(idx);b.ref=1;this.slog(`  ${segs[i]}: acierto en ${b.id} (h=${b.hash}); estaba a ref 0 en la cola de libres, desenganchado; ref de 0 a 1`,'hit');}else{b.ref++;this.slog(`  ${segs[i]}: acierto en ${b.id} (h=${b.hash}); ref de ${b.ref-1} a ${b.ref}`,'hit');}table.push(idx);i++;}
+    if(i===segs.length)this.slog('  todos los bloques aciertan: el motor recalcula igualmente el último bloque para que haya una pasada hacia delante que produzca logits');
+    while(i<segs.length){
+      if(S.queue.length===0){this.slog(`  ${segs[i]}: fallo, y la cola de libres está vacía. Los ${S.N} bloques están fijados por peticiones en marcha; un planificador real expulsaría una. Admisión rechazada, liberando lo que ${name} había cogido.`,'warn');for(let j=table.length-1;j>=0;j--){const b=S.blocks[table[j]];b.ref--;if(b.ref===0)S.queue.push(table[j]);}return;}
+      const idx=S.queue.shift(),b=S.blocks[idx];
+      if(b.hash){delete S.map[b.hash];this.slog(`  ${segs[i]}: fallo; sale ${b.id} de la cabeza de la cola; tenía "${b.label}" (h=${b.hash}) a ref 0, así que ese hash se desaloja del mapa y la KV se sobrescribe`,'evict');}
+      else this.slog(`  ${segs[i]}: fallo; sale el bloque libre ${b.id} de la cabeza de la cola`,'miss');
+      b.hash=chain[i].h;b.label=segs[i];b.parent=chain[i].parent;b.ref=1;S.map[b.hash]=idx;table.push(idx);
+      this.slog(`  ${segs[i]}: prefill en ${b.id}; h=${b.hash} = H(${chain[i].parent}, "${segs[i]}") insertado, ref 1`,'miss');i++;
+    }
+    r.status='running';r.table=table;
+  }
+  finish(name){
+    const S=this.S,r=S.reqs[name];if(r.status!=='running'){this.slog(`${name}: no está en marcha`);return;}
+    this.slog(`terminar ${name}: libera los bloques en orden inverso`);
+    for(let j=r.table.length-1;j>=0;j--){const b=S.blocks[r.table[j]];b.ref--;if(b.ref===0){S.queue.push(r.table[j]);this.slog(`  ${b.id} "${b.label}": ref de 1 a 0, añadido al final de la cola de libres, conserva el hash`);}else this.slog(`  ${b.id} "${b.label}": ref de ${b.ref+1} a ${b.ref}, sigue fijado`);}
+    r.status='idle';r.table=[];
+  }
+  onBlockBtn=e=>{const b=e.currentTarget;if(this.S.playing)return;if(b.dataset.act==='admit')this.admit(b.dataset.req);else this.finish(b.dataset.req);this.bump();};
+  onReset=()=>{if(this.S.playing)return;this.S=this.freshSim();this.bump();};
+  onPlay=()=>{
+    if(this.S.playing)return;this.S=this.freshSim();this.S.playing=true;this.bump();
+    let i=0;const delay=1600*this.speed;
+    const step=()=>{if(i>=SCRIPT.length){this.S.playing=false;this.S.status='Escenario terminado. Sigue trasteando con los botones de arriba.';this.bump();return;}const act=SCRIPT[i][0],req=SCRIPT[i][1];if(act==='admit')this.admit(req);else this.finish(req);this.S.status=`Paso ${i+1} de ${SCRIPT.length}: ${WHY[i]}`;i++;this.bump();this.after(step,delay);};
+    step();
+  };
+  arcs(){
+    const S=this.S,kids=[],cx=i=>(i*12.625+5.8125)*8;
+    S.blocks.forEach((b,i)=>{if(!b.hash||b.parent==='root')return;const pi=S.map[b.parent];if(pi===undefined)return;const x1=cx(pi),x2=cx(i),lift=Math.min(50,14+Math.abs(x2-x1)/10);kids.push(H('path',{key:b.id+b.hash,d:`M${x2} 56 Q${(x1+x2)/2} ${56-lift*2} ${x1} 56`,fill:'none',stroke:C.g06,strokeWidth:1.5,vectorEffect:'non-scaling-stroke',style:{animation:this.anim?'dcFade .4s ease-out both':'none'}}));});
+    return kids;
+  }
+
+  /* ---------------- request trace */
+  onTrace=()=>{
+    if(this.state.trace>=0)return;const dur=1500*this.speed;let i=0;
+    const go=()=>{if(i>=TRACE.length){this.setState({trace:-2});this.after(()=>this.setState({trace:-1}),1400);return;}this.setState({trace:i});i++;this.after(go,dur);};
+    go();
+  };
+
+  renderVals(){
+    const st=this.state,tr=st.trace,S=this.S;
+    const d=this.decode(),s=this.stall(),t=this.tier();
+    const navBg={};['path','phases','decode','stall','cache','blocks','sources'].forEach(id=>navBg[id]=st.nav===id?C.purpleA:'transparent');
+    const on=n=>tr>=0&&TRACE[tr].n===n?LIT:'none';
+    const lit={client:on('client'),gateway:on('gateway'),sched:on('sched'),prefill:on('prefill'),decode:on('decode')};
+    const done=tr===-2,c=k=>(done||tr>=k)?100:0,sc=k=>(done||tr>=k)?(k===4?C.blue:C.purple):C.g04;
+    const conn={c1:c(1),c2:c(2),c3:c(3),c4:c(4),c5:c(5),s1:sc(1),s2:sc(2),s3:sc(3),s4:sc(4),s5:sc(5)};
+    const traceCaption=tr>=0?TRACE[tr].t:tr===-2?'Traza terminada. Pulsa otra vez para repetirla.':'Púlsalo para seguir una sola petición por el diagrama. Los pasos también están escritos abajo, por si no quieres.';
+    const blocks=S.blocks.map(b=>{const stt=b.ref>0?'pinned':b.hash?'cached':'free';return {id:b.id,ref:'ref '+b.ref,refColor:b.ref>0?C.purple7:C.mute,label:b.hash?b.label:'libre',labelColor:b.hash?C.ink:C.mute,hash:b.hash?'h '+b.hash:'',parent:b.hash?(b.parent==='root'?'padre: raíz':'padre: '+b.parent):'',bg:stt==='pinned'?C.purpleA:stt==='cached'?C.blue2:'#FFFFFF',border:stt==='pinned'?C.purple:stt==='cached'?C.blue:C.g04,dash:stt==='free'?'dashed':'solid'};});
+    const queue=S.queue.map((idx,j)=>{const b=S.blocks[idx];return {id:b.id,bg:b.hash?C.blue2:'#FFFFFF',border:b.hash?C.blue:C.g04,dash:b.hash?'solid':'dashed',tag:j===0?'cabeza':j===S.queue.length-1?'cola':''};});
+    const reqs=Object.keys(DEFS).map(k=>{const r=S.reqs[k],segs=DEFS[k];const chain=r.status==='running'?segs.map((sg,i)=>`${sg} in ${S.blocks[r.table[i]].id}`).join(', '):segs.join(', ');return {name:'Petición '+k,status:r.status==='running'?'en marcha':'inactiva',chain,border:r.status==='running'?C.purple:C.border,statusColor:r.status==='running'?C.purple7:C.mute};});
+    const btns=Object.keys(DEFS).map(k=>{const run=S.reqs[k].status==='running';return {label:(run?'Terminar ':'Admitir ')+k,act:run?'finish':'admit',req:k};});
+    const log=S.log.map(l=>({msg:l.msg,color:({hit:C.blue6,miss:C.purple7,evict:C.red,warn:C.red})[l.cls]||C.sub,weight:l.cls==='warn'?600:400}));
+    const arcs=this.arcs();
+    return {d,s,t,navBg,lit,conn,traceCaption,traceRunning:tr>=0,
+      blocks,arcs,noArcs:arcs.length===0,queue,queueEmpty:S.queue.length===0,reqs,btns,log,bStatus:S.status,playing:S.playing,
+      onCtl:this.onCtl,onTrace:this.onTrace,onBlockBtn:this.onBlockBtn,onPlay:this.onPlay,onReset:this.onReset,chartRef:this.chartRef,logRef:this.logRef,
+      chips24:Array.from({length:24},(_,i)=>i),chips16:Array.from({length:16},(_,i)=>i),
+      tw:this.tr('width'),tlw:this.tr('left')+', '+this.tr('width'),tl:this.tr('left'),th:this.tr('height'),tbs:this.tr('box-shadow',300),tst:this.tr('stroke',300),tbg:this.tr('background-color',300)+', '+this.tr('border-color',300),twb:this.tr('width')+', '+this.tr('background-color',300)};
+  }
+}
+</script>
+</body>
+</html>

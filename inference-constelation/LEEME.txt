@@ -1,0 +1,38 @@
+CONSTELACIÓN DE INFERENCIA — EDICIÓN EN ESPAÑOL SIN CONEXIÓN
+
+CÓMO ABRIRLA
+1. Extrae por completo este archivo ZIP.
+2. Abre la carpeta «Constelación de inferencia».
+3. Haz doble clic en index.html o ábrelo en un navegador actual.
+
+No necesitas instalar nada, iniciar un servidor, tener una cuenta ni conectarte
+a internet. Conserva juntos index.html, style.css, app.js, content.js,
+glossary-data.js y la carpeta fonts.
+
+CÓMO EXPLORAR
+Usa la rueda o el gesto de pellizco para acercarte y alejarte. Arrastra el mapa
+para desplazarte. Haz doble clic en un componente para entrar en él.
+El inspector muestra los componentes anidados y sus explicaciones técnicas.
+La pestaña Experimentar permite cambiar las cargas y los escenarios de fallo.
+El recorrido guiado dura aproximadamente 55 minutos.
+El Glosario contiene 85 términos: busca en español o con las siglas y los
+nombres originales. También puedes pulsar las siglas subrayadas en las notas.
+
+Con el mapa enfocado, usa + y − para ampliar, las flechas para desplazarte,
+Escape para subir al componente superior e Inicio (Home) para ver la flota.
+
+El mapa, las notas, el recorrido, los experimentos y el glosario funcionan sin
+conexión. Los enlaces a documentos y artículos externos necesitan internet;
+esas publicaciones conservan el idioma de sus autores.
+
+ALCANCE
+Arquitectura de referencia basada en mecanismos publicados y supuestos de
+ingeniería. No describe infraestructura privada de proveedores ni representa
+mediciones de rendimiento. Los valores del simulador son ilustrativos.
+
+FUENTES TIPOGRÁFICAS
+Se incluyen DM Sans e IBM Plex Mono con sus licencias SIL Open Font License.
+Los avisos originales de licencia y derechos de autor se conservan íntegros
+en la carpeta fonts. Procedencia: Google Fonts.
+
+Versión en español preparada el 22 de septiembre de 2026.

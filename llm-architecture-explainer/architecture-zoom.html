@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="./colors_and_type.css">
+<style>
+@font-face{font-family:"Canva Sans";font-style:normal;font-display:swap;font-weight:400 700;src:url("./fonts/canva-sans-latin.woff2") format("woff2-variations"),url("./fonts/canva-sans-latin.woff2") format("woff2");unicode-range:U+0020-007e,U+00a0,U+2013-2014,U+2018-201a,U+201c-201e,U+2020-2022,U+2026}
+@font-face{font-family:"Canva Sans";font-style:normal;font-display:swap;font-weight:400 700;src:url("./fonts/canva-sans-latin-ext.woff2") format("woff2");unicode-range:U+0100-024f}
+html,body{margin:0;background:var(--elevationSurfaceSunkenBg);-webkit-font-smoothing:antialiased}
+a{color:var(--colorLinkFg)}a:hover{color:var(--colorLinkFgHovered)}
+@keyframes azFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</helmet>
+<div style="font-family:var(--fontFamilySans);font-variation-settings:var(--fontVariationSettingsBody);color:var(--colorContentFg);background:var(--elevationSurfaceSunkenBg);max-width:1400px;margin:0 auto;padding:32px 24px 48px">
+
+<header style="margin-bottom:20px">
+  <p style="margin:0 0 6px;font-size:12px;line-height:18px;font-weight:600;letter-spacing:.02em;color:var(--colorActionPrimaryBg)">Pizarra interactiva</p>
+  <h1 style="margin:0 0 8px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;font-variation-settings:var(--fontVariationSettingsDisplay)">Servir modelos de frontera, con zoom</h1>
+  <p style="margin:0;max-width:72ch;font-size:15px;line-height:22px;color:var(--colorContentSubtleFg);text-wrap:pretty">Cajas dentro de cajas. Empieza por la flota entera, haz clic en la máquina destacada para entrar en ella y después en la GPU destacada de dentro. Usa la rueda para hacer zoom y arrastra para moverte en cualquier momento.</p>
+</header>
+
+<div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+  <button type="button" onClick="{{ onBack }}" style="height:36px;padding:0 14px;border-radius:var(--radiusElementStandard);border:1px solid var(--colorBlackA02);background:var(--elevationSurfaceBg);color:var(--colorContentFg);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer" style-hover="background:var(--colorBlackA01)" style-active="background:var(--colorBlackA02)">Volver a la flota</button>
+  <button type="button" onClick="{{ onUpLevel }}" style="height:36px;padding:0 14px;border-radius:var(--radiusElementStandard);border:1px solid var(--colorBlackA02);background:var(--elevationSurfaceBg);color:var(--colorContentFg);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;opacity:{{ upOpacity }};pointer-events:{{ upEvents }}" style-hover="background:var(--colorBlackA01)" style-active="background:var(--colorBlackA02)">Subir un nivel</button>
+  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;font-size:13px;line-height:20px">
+    <sc-for list="{{ crumbs }}" as="cr" hint-placeholder-count="3">
+      <span style="display:{{ cr.sepDisplay }};align-items:center;color:var(--colorBlackA05)"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg></span>
+      <span data-idx="{{ cr.idx }}" onClick="{{ onCrumb }}" style="cursor:pointer;padding:2px 10px;border-radius:var(--radiusElementRound);font-weight:{{ cr.w }};color:{{ cr.c }};background:{{ cr.bg }}">{{ cr.label }}</span>
+    </sc-for>
+  </div>
+</div>
+
+<div ref="{{ vpRef }}" tabIndex="0" onMouseDown="{{ onDown }}" onMouseMove="{{ onMove }}" onMouseUp="{{ onDragEnd }}" onMouseLeave="{{ onDragEnd }}" style="position:relative;height:clamp(480px,72vh,760px);border-radius:var(--radiusContainerSoft);background:var(--colorGrey01);border:1px solid var(--colorBlackA02);overflow:hidden;cursor:{{ cursor }};outline:none;user-select:none">
+
+  <div style="position:absolute;left:0;top:0;width:2400px;height:1400px;transform:{{ camTransform }};transform-origin:0 0">
+
+    <div style="position:absolute;left:80px;top:90px;width:190px;height:48px;border-radius:9999px;background:var(--elevationSurfaceBg);border:1px solid var(--colorBlackA02);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600">Clientes</div>
+    <div style="position:absolute;left:1330px;top:100px;width:320px;height:56px;border-radius:9999px;background:var(--elevationSurfaceBg);border:1px solid var(--colorBlackA02);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:600">Gateway de API global</div>
+
+    <!-- Nivel 0: backend del producto -->
+    <div onClick="{{ onBackend }}" style="position:absolute;left:330px;top:-80px;width:900px;height:440px;border-radius:28px;background:var(--elevationSurfaceBg);border:1px solid var(--colorBlackA02);box-sizing:border-box;padding:22px 28px;display:flex;flex-direction:column;gap:14px;cursor:pointer">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px">
+        <div><div style="font-size:26px;line-height:32px;font-weight:600">Backend del producto · el sistema de registro</div><div style="font-size:16px;line-height:22px;color:var(--colorContentSubtleFg)">Todo lo que la flota no debe olvidar vive aquí. La caché KV es solo un atajo.</div></div>
+        <div style="font-size:14px;line-height:22px;font-weight:600;color:var(--colorActionPrimaryBg);white-space:nowrap;opacity:{{ backendHint }}">Acércate</div>
+      </div>
+      <div style="border-radius:14px;background:var(--colorGrey01);border:1px solid var(--colorBlackA02);padding:12px 16px;display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:16px;line-height:20px;font-weight:600">Servidores de aplicación · autenticación, límites de uso y el bucle del agente</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;min-width:0;padding:6px 8px;border-radius:8px;background:var(--elevationSurfaceBg);border:1px solid var(--colorBlackA02);text-align:center"><div style="font-size:14px;line-height:18px;font-weight:700">Cargar la conversación</div><div style="font-size:12.5px;line-height:16px;color:var(--colorContentSubtleFg)">desde Postgres</div></div>
+          <svg width="18" height="12" viewBox="0 0 16 12" style="flex:none" aria-hidden="true"><path d="M1 6h13M10 2l4 4-4 4" stroke="var(--colorBlackA05)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+          <div style="flex:1;min-width:0;padding:6px 8px;border-radius:8px;background:var(--elevationSurfaceBg);border:1px solid var(--colorBlackA02);text-align:center"><div style="font-size:14px;line-height:18px;font-weight:700">Armar el prompt</div><div style="font-size:12.5px;line-height:16px;color:var(--colorContentSubtleFg)">sistema, historial, herramientas</div></div>
+          <svg width="18" height="12" viewBox="0 0 16 12" style="flex:none" aria-hidden="true"><path d="M1 6h13M10 2l4 4-4 4" stroke="var(--colorBlackA05)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+          <div style="flex:1;min-width:0;padding:6px 8px;border-radius:8px;background:var(--colorPurple01);text-align:center"><div style="font-size:14px;line-height:18px;font-weight:700;color:var(--colorPurple08)">Llamar al modelo</div><div style="font-size:12.5px;line-height:16px;color:var(--colorContentSubtleFg)">a través del gateway</div></div>
+          <svg width="18" height="12" viewBox="0 0 16 12" style="flex:none" aria-hidden="true"><path d="M1 6h13M10 2l4 4-4 4" stroke="var(--colorBlackA05)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+          <div style="flex:1;min-width:0;padding:6px 8px;border-radius:8px;background:var(--elevationSurfaceBg);border:1px solid var(--colorBlackA02);text-align:center"><div style="font-size:14px;line-height:18px;font-weight:700">Ejecutar las herramientas</div><div style="font-size:12.5px;line-height:16px;color:var(--colorContentSubtleFg)">búsqueda, código, tus APIs</div></div>
+          <svg width="18" height="12" viewBox="0 0 16 12" style="flex:none" aria-hidden="true"><path d="M1 6h13M10 2l4 4-4 4" stroke="var(--colorBlackA05)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+          <div style="flex:1;min-width:0;padding:6px 8px;border-radius:8px;background:var(--colorTeal01);text-align:center"><div style="font-size:14px;line-height:18px;font-weight:700">Añadir y volver a llamar</div><div style="font-size:12.5px;line-height:16px">el prefijo ya está en caché</div></div>
+          <svg width="18" height="12" viewBox="0 0 16 12" style="flex:none" aria-hidden="true"><path d="M1 6h13M10 2l4 4-4 4" stroke="var(--colorBlackA05)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+          <div style="flex:1;min-width:0;padding:6px 8px;border-radius:8px;background:var(--elevationSurfaceBg);border:1px solid var(--colorBlackA02);text-align:center"><div style="font-size:14px;line-height:18px;font-weight:700">Guardar el turno</div><div style="font-size:12.5px;line-height:16px;color:var(--colorContentSubtleFg)">respuesta, llamadas a herramientas, uso</div></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;flex:1;min-height:0">
+        <div style="padding:10px 14px;border-radius:12px;background:var(--colorBlue01);border:1px solid var(--colorBlue03)"><div style="font-size:16px;line-height:21px;font-weight:600;color:var(--colorBlue08)">Postgres · DynamoDB</div><div style="font-size:13.5px;line-height:18px;margin-top:4px;color:var(--colorContentFg)">conversaciones, mensajes, llamadas a herramientas, usuarios y facturación: la copia duradera de cada chat.</div></div>
+        <div style="padding:10px 14px;border-radius:12px;background:var(--colorGrey01);border:1px solid var(--colorBlackA02)"><div style="font-size:16px;line-height:21px;font-weight:600">Redis · Valkey</div><div style="font-size:13.5px;line-height:18px;margin-top:4px;color:var(--colorContentFg)">sesiones, límites de uso, pistas de enrutamiento y difusión de los tokens en streaming.</div></div>
+        <div style="padding:10px 14px;border-radius:12px;background:var(--colorGrey01);border:1px solid var(--colorBlackA02)"><div style="font-size:16px;line-height:21px;font-weight:600">Almacén de objetos · S3, GCS</div><div style="font-size:13.5px;line-height:18px;margin-top:4px;color:var(--colorContentFg)">subidas, imágenes, archivos generados, logs y los checkpoints con los que arranca la flota.</div></div>
+        <div style="padding:10px 14px;border-radius:12px;background:var(--colorGrey01);border:1px solid var(--colorBlackA02)"><div style="font-size:16px;line-height:21px;font-weight:600">Kafka · colas</div><div style="font-size:13.5px;line-height:18px;margin-top:4px;color:var(--colorContentFg)">medición de uso, telemetría y trabajos asíncronos como evaluaciones y revisión de seguridad.</div></div>
+      </div>
+    </div>
+
+    <!-- Nivel 0: nubes por región -->
+    <div style="position:absolute;left:90px;top:430px;width:1090px;height:700px;border-radius:200px 220px 210px 190px / 180px 200px 190px 170px;background:var(--elevationSurfaceBg);border:1px solid var(--colorBlackA02)"></div>
+    <div style="position:absolute;left:1320px;top:370px;width:760px;height:440px;border-radius:170px 180px 170px 160px / 150px 160px 150px 140px;background:var(--elevationSurfaceBg);border:1px solid var(--colorBlackA02)"></div>
+    <div style="position:absolute;left:1690px;top:890px;width:760px;height:440px;border-radius:170px 180px 170px 160px / 150px 160px 150px 140px;background:var(--elevationSurfaceBg);border:1px solid var(--colorBlackA02)"></div>
+
+    <div style="position:absolute;left:800px;top:456px;width:340px;text-align:center"><div style="font-size:28px;line-height:34px;font-weight:600">Norteamérica</div><div style="font-size:18px;line-height:26px;color:var(--colorContentSubtleFg)">Miles de réplicas</div></div>
+    <div style="position:absolute;left:1320px;top:394px;width:760px;text-align:center"><div style="font-size:28px;line-height:34px;font-weight:600">Europa</div><div style="font-size:18px;line-height:26px;color:var(--colorContentSubtleFg)">Miles de réplicas</div></div>
+    <div style="position:absolute;left:1690px;top:914px;width:760px;text-align:center"><div style="font-size:28px;line-height:34px;font-weight:600">Asia Pacífico</div><div style="font-size:18px;line-height:26px;color:var(--colorContentSubtleFg)">Miles de réplicas</div></div>
+
+    <svg width="2400" height="1400" viewBox="0 0 2400 1400" style="position:absolute;left:0;top:0;pointer-events:none;opacity:{{ lod.i1 }}" aria-hidden="true">
+      <defs>
+        <marker id="azA" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="var(--colorBlackA05)"></path></marker>
+        <marker id="azB" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="var(--colorBlue06)"></path></marker>
+        <marker id="azT" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse"><path d="M0 0L8 4L0 8Z" fill="var(--colorTeal04)"></path></marker>
+      </defs>
+      <path d="M272 114L322 114" stroke="var(--colorBlackA05)" strokeWidth="2" fill="none" markerEnd="url(#azA)"></path>
+      <path d="M1232 128L1322 128" stroke="var(--colorBlackA05)" strokeWidth="2" fill="none" markerEnd="url(#azA)"></path>
+      <path d="M1400 156L1400 360Q1400 400 1360 400L320 400Q280 400 280 440L280 536" stroke="var(--colorBlackA05)" strokeWidth="2" fill="none" markerEnd="url(#azA)"></path>
+      <path d="M1500 156C1500 250 1500 250 1500 358" stroke="var(--colorBlackA05)" strokeWidth="2" fill="none" markerEnd="url(#azA)"></path>
+      <path d="M1560 156C1560 250 2440 320 2220 884" stroke="var(--colorBlackA05)" strokeWidth="2" fill="none" markerEnd="url(#azA)"></path>
+    </svg>
+
+    <svg width="2400" height="1400" viewBox="0 0 2400 1400" style="position:absolute;left:0;top:0;pointer-events:none;opacity:{{ lod.i1 }}" aria-hidden="true">
+      <path d="M362 592C480 592 500 727 617 727" stroke="var(--colorBlue06)" strokeWidth="2.5" fill="none" markerEnd="url(#azB)"></path>
+      <path d="M647 826C647 900 280 850 280 916" stroke="var(--colorTeal04)" strokeWidth="2.5" strokeDasharray="8 6" fill="none" markerStart="url(#azT)" markerEnd="url(#azT)"></path>
+    </svg>
+    <sc-if value="{{ showLinks }}" hint-placeholder-val="{{ true }}">
+      <svg width="2400" height="1400" viewBox="0 0 2400 1400" style="position:absolute;left:0;top:0;pointer-events:none;opacity:{{ lod.i1 }}" aria-hidden="true">
+        <path d="M700 772L530 588M700 772L700 596M700 772L870 584M700 772L1040 594M700 772L530 780M700 772L870 768M700 772L1040 778" stroke="var(--colorBlackA03)" strokeWidth="2" fill="none"></path>
+      </svg>
+    </sc-if>
+
+    <div style="position:absolute;left:420px;top:500px;width:720px;height:350px;border-radius:28px;border:2px dashed var(--colorBlackA03);box-sizing:border-box"></div>
+    <div style="position:absolute;left:444px;top:486px;padding:2px 14px;border-radius:9999px;background:var(--elevationSurfaceBg);font-size:18px;line-height:24px;font-weight:600;color:var(--colorContentSubtleFg)">Réplica 7 · 8 nodos, un motor</div>
+    <div style="position:absolute;left:450px;top:918px;font-size:18px;line-height:24px;font-weight:600;color:var(--colorContentSubtleFg)">Otras réplicas</div>
+
+    <sc-for list="{{ nodes }}" as="n" hint-placeholder-count="27">
+      <div style="position:absolute;left:{{ n.x }}px;top:{{ n.y }}px;width:160px;height:104px;border-radius:10px;background:var(--colorGrey01);border:1px solid var(--colorBlackA02);box-sizing:border-box;padding:16px 18px;display:flex;flex-direction:column;justify-content:center;gap:9px">
+        <div style="height:14px;border-radius:4px;background:var(--colorGrey03);display:flex;align-items:center;gap:6px;padding:0 8px"><span style="width:6px;height:6px;border-radius:9999px;background:var(--colorGreen05)"></span><span style="width:6px;height:6px;border-radius:9999px;background:var(--colorGrey05)"></span></div>
+        <div style="height:14px;border-radius:4px;background:var(--colorGrey03);display:flex;align-items:center;gap:6px;padding:0 8px"><span style="width:6px;height:6px;border-radius:9999px;background:var(--colorGreen05)"></span><span style="width:6px;height:6px;border-radius:9999px;background:var(--colorGrey05)"></span></div>
+        <div style="height:14px;border-radius:4px;background:var(--colorGrey03);display:flex;align-items:center;gap:6px;padding:0 8px"><span style="width:6px;height:6px;border-radius:9999px;background:var(--colorGreen05)"></span><span style="width:6px;height:6px;border-radius:9999px;background:var(--colorGrey05)"></span></div>
+      </div>
+    </sc-for>
+
+    <!-- Planificador: su nivel 1 vive dentro -->
+    <div onClick="{{ onSched }}" style="position:absolute;left:200px;top:540px;width:160px;height:104px;border-radius:10px;background:var(--colorBlue01);border:1px solid var(--colorBlue04);box-sizing:border-box;cursor:pointer">
+      <div style="position:absolute;inset:0;padding:14px 18px;display:flex;flex-direction:column;justify-content:center;gap:4px;opacity:{{ lod.i1 }};visibility:{{ lod.iv1 }}">
+        <div style="font-size:22px;line-height:26px;font-weight:600;color:var(--colorBlue08)">Planificador</div>
+        <div style="font-size:14px;line-height:18px;color:var(--colorContentSubtleFg)">enrutamiento según prefijo</div>
+        <div style="position:absolute;right:12px;bottom:8px;font-size:12px;line-height:16px;font-weight:600;color:var(--colorBlue08)">Entrar</div>
+      </div>
+      <div style="position:absolute;left:0;top:0;width:948px;height:612px;transform:scale(0.1666667);transform-origin:0 0;opacity:{{ lod.c1 }};visibility:{{ lod.v1 }}">
+        <div style="position:absolute;inset:0;border-radius:54px;background:var(--elevationSurfaceBg);box-sizing:border-box;padding:24px 30px 26px;font-size:14px;line-height:20px;display:flex;flex-direction:column;gap:14px;text-align:left;cursor:default">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+            <div style="display:flex;align-items:center;gap:8px;height:30px;padding:0 14px 0 10px;border-radius:9999px;background:var(--colorGrey01);border:1px solid var(--colorBlackA02);font-size:12.5px;font-weight:600;white-space:nowrap"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.75" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>Peticiones que entran · desde el gateway</div>
+            <div style="display:flex;align-items:center;gap:8px;height:30px;padding:0 10px 0 14px;border-radius:9999px;background:var(--colorBlue01);color:var(--colorBlue08);font-size:12.5px;font-weight:600;white-space:nowrap">Asignaciones que salen · a una réplica<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.75" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg></div>
+          </div>
+          <div>
+            <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:12px;font-weight:700;color:var(--colorActionPrimaryBg)">Nivel 1</span><span style="font-size:22px;line-height:28px;font-weight:600">Dentro del planificador</span></div>
+            <p style="margin:2px 0 0;color:var(--colorContentSubtleFg);text-wrap:pretty">Un enrutador con memoria. Para cada petición pregunta qué réplicas ya tienen en caché KV el prefijo del prompt, y desempata por memoria libre, profundidad de cola y prioridad.</p>
+          </div>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:22px;flex:1;min-height:0;align-items:start">
+            <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+              <div style="font-size:12px;font-weight:700;color:var(--colorContentSubtleFg)">Una petición, cuatro candidatas · prompt de 8k tokens</div>
+              <div style="border-radius:10px;border:1px solid var(--colorBlackA02);overflow:hidden">
+                <div style="display:grid;grid-template-columns:1.5fr 1fr 0.8fr 0.6fr 1.1fr;gap:8px;padding:8px 12px;background:var(--colorGrey01);font-size:11.5px;line-height:15px;font-weight:700;color:var(--colorContentSubtleFg)"><span>Réplica</span><span>Prefijo en caché</span><span>KV libre</span><span>Cola</span><span>Primer token</span></div>
+                <div style="display:grid;grid-template-columns:1.5fr 1fr 0.8fr 0.6fr 1.1fr;gap:8px;padding:9px 12px;border-top:1px solid var(--colorBlackA02);font-size:12.5px;line-height:17px"><span style="font-weight:600">Réplica 3</span><span>ninguno</span><span>62%</span><span>1</span><span>290 ms</span></div>
+                <div style="display:grid;grid-template-columns:1.5fr 1fr 0.8fr 0.6fr 1.1fr;gap:8px;padding:9px 12px;border-top:1px solid var(--colorBlackA02);font-size:12.5px;line-height:17px;background:var(--colorPurple01)"><span style="font-weight:700;color:var(--colorPurple08)">Réplica 7 · Nodo 14</span><span>6.1k de 8k</span><span>41%</span><span>1</span><span style="font-weight:700;color:var(--colorPurple08)">180 ms · gana</span></div>
+                <div style="display:grid;grid-template-columns:1.5fr 1fr 0.8fr 0.6fr 1.1fr;gap:8px;padding:9px 12px;border-top:1px solid var(--colorBlackA02);font-size:12.5px;line-height:17px"><span style="font-weight:600">Réplica 12</span><span>2.0k de 8k</span><span>18%</span><span>2</span><span>400 ms</span></div>
+                <div style="display:grid;grid-template-columns:1.5fr 1fr 0.8fr 0.6fr 1.1fr;gap:8px;padding:9px 12px;border-top:1px solid var(--colorBlackA02);font-size:12.5px;line-height:17px"><span style="font-weight:600">Réplica 19</span><span>ninguno</span><span>74%</span><span>5</span><span>870 ms</span></div>
+              </div>
+              <p style="margin:0;font-size:12.5px;line-height:17px;color:var(--colorContentSubtleFg);text-wrap:pretty">Los tokens de prefijo en caché se saltan el prefill por completo, así que una réplica que ya tiene casi todo el prompt gana a otra más vacía que tendría que recalcularlo.</p>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="font-size:12px;font-weight:700;color:var(--colorContentSubtleFg)">Qué guarda en memoria</div>
+              <div style="padding:9px 12px;border-radius:10px;background:var(--colorGrey01);border:1px solid var(--colorBlackA02)"><div style="font-weight:600">Índice de prefijos</div><div style="font-size:12.5px;line-height:17px;color:var(--colorContentSubtleFg)">el hash de cada bloque y las réplicas que lo tienen, actualizado a medida que desalojan</div></div>
+              <div style="padding:9px 12px;border-radius:10px;background:var(--colorGrey01);border:1px solid var(--colorBlackA02)"><div style="font-weight:600">Estado de las réplicas</div><div style="font-size:12.5px;line-height:17px;color:var(--colorContentSubtleFg)">bloques KV libres, profundidad de cola, lotes en vuelo, latido</div></div>
+              <div style="padding:9px 12px;border-radius:10px;background:var(--colorGrey01);border:1px solid var(--colorBlackA02)"><div style="font-weight:600">Políticas</div><div style="font-size:12.5px;line-height:17px;color:var(--colorContentSubtleFg)">niveles de prioridad, presupuestos de latencia, equidad entre inquilinos</div></div>
+              <button type="button" onClick="{{ openRoute }}" style="height:38px;border-radius:var(--radiusElementStandard);border:0;background:var(--colorActionPrimaryBg);color:var(--colorActionPrimaryFg);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer" style-hover="background:var(--colorActionPrimaryBgHovered)" style-active="background:var(--colorActionPrimaryBgPressed)">Pruébalo: enruta una petición</button>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;min-width:0">
+            <div style="flex:1;min-width:0;padding:5px 8px;border-radius:8px;background:var(--colorGrey01);text-align:center"><div style="font-size:12px;line-height:15px;font-weight:700">Petición</div><div style="font-size:11px;line-height:14px;color:var(--colorContentSubtleFg)">llega</div></div>
+            <svg width="16" height="12" viewBox="0 0 16 12" style="flex:none" aria-hidden="true"><path d="M1 6h13M10 2l4 4-4 4" stroke="var(--colorBlackA05)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+            <div style="flex:1;min-width:0;padding:5px 8px;border-radius:8px;background:var(--colorTeal01);text-align:center"><div style="font-size:12px;line-height:15px;font-weight:700">Hash</div><div style="font-size:11px;line-height:14px">los bloques del prefijo</div></div>
+            <svg width="16" height="12" viewBox="0 0 16 12" style="flex:none" aria-hidden="true"><path d="M1 6h13M10 2l4 4-4 4" stroke="var(--colorBlackA05)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+            <div style="flex:1;min-width:0;padding:5px 8px;border-radius:8px;background:var(--colorBlue01);text-align:center"><div style="font-size:12px;line-height:15px;font-weight:700;color:var(--colorBlue08)">Buscar</div><div style="font-size:11px;line-height:14px;color:var(--colorContentSubtleFg)">quién los tiene</div></div>
+            <svg width="16" height="12" viewBox="0 0 16 12" style="flex:none" aria-hidden="true"><path d="M1 6h13M10 2l4 4-4 4" stroke="var(--colorBlackA05)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+            <div style="flex:1;min-width:0;padding:5px 8px;border-radius:8px;background:var(--colorBlue01);text-align:center"><div style="font-size:12px;line-height:15px;font-weight:700;color:var(--colorBlue08)">Puntuar</div><div style="font-size:11px;line-height:14px;color:var(--colorContentSubtleFg)">cada réplica</div></div>
+            <svg width="16" height="12" viewBox="0 0 16 12" style="flex:none" aria-hidden="true"><path d="M1 6h13M10 2l4 4-4 4" stroke="var(--colorBlackA05)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+            <div style="flex:1;min-width:0;padding:5px 8px;border-radius:8px;background:var(--colorPurple01);text-align:center"><div style="font-size:12px;line-height:15px;font-weight:700;color:var(--colorPurple08)">Despachar</div><div style="font-size:11px;line-height:14px;color:var(--colorContentSubtleFg)">y recordar</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Almacén KV: su nivel 1 vive dentro -->
+    <div onClick="{{ onKv }}" style="position:absolute;left:200px;top:920px;width:160px;height:104px;border-radius:10px;background:var(--colorTeal01);border:1px solid var(--colorTeal03);box-sizing:border-box;cursor:pointer">
+      <div style="position:absolute;inset:0;padding:14px 18px;display:flex;flex-direction:column;justify-content:center;gap:4px;opacity:{{ lod.i1 }};visibility:{{ lod.iv1 }}">
+        <div style="font-size:22px;line-height:26px;font-weight:600">Almacén KV</div>
+        <div style="font-size:14px;line-height:18px;color:var(--colorContentSubtleFg)">caché de prefijos compartida</div>
+        <div style="position:absolute;right:12px;bottom:8px;font-size:12px;line-height:16px;font-weight:600">Entrar</div>
+      </div>
+      <div style="position:absolute;left:0;top:0;width:948px;height:612px;transform:scale(0.1666667);transform-origin:0 0;opacity:{{ lod.c1 }};visibility:{{ lod.v1 }}">
+        <div style="position:absolute;inset:0;border-radius:54px;background:var(--elevationSurfaceBg);box-sizing:border-box;padding:24px 30px 26px;font-size:14px;line-height:20px;display:flex;flex-direction:column;gap:14px;text-align:left;cursor:default">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+            <div style="display:flex;align-items:center;gap:8px;height:30px;padding:0 14px 0 10px;border-radius:9999px;background:var(--colorTeal01);font-size:12.5px;font-weight:600;white-space:nowrap"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 12V2M3 6l4-4 4 4" stroke="currentColor" strokeWidth="1.75" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>Escrituras que entran · bloques de prefijo terminados de cada réplica</div>
+            <div style="display:flex;align-items:center;gap:8px;height:30px;padding:0 10px 0 14px;border-radius:9999px;background:var(--colorTeal01);font-size:12.5px;font-weight:600;white-space:nowrap">Restauraciones que salen · a la réplica que gane la petición<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.75" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg></div>
+          </div>
+          <div>
+            <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:12px;font-weight:700;color:var(--colorActionPrimaryBg)">Nivel 1</span><span style="font-size:22px;line-height:28px;font-weight:600">Dentro del almacén KV compartido</span></div>
+            <p style="margin:2px 0 0;color:var(--colorContentSubtleFg);text-wrap:pretty">Una memoria de prefijos para toda la flota. Las réplicas publican los bloques KV de los prompts que ya procesaron; cualquier réplica puede recuperarlos por red en vez de recalcularlos.</p>
+          </div>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:22px;flex:1;min-height:0;align-items:start">
+            <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+              <div style="font-size:12px;font-weight:700;color:var(--colorContentSubtleFg)">Índice · del hash de contenido a dónde viven los bytes</div>
+              <div style="border-radius:10px;border:1px solid var(--colorBlackA02);overflow:hidden">
+                <div style="display:grid;grid-template-columns:1.7fr 0.8fr 0.8fr 0.7fr 0.7fr;gap:8px;padding:8px 12px;background:var(--colorGrey01);font-size:11.5px;line-height:15px;font-weight:700;color:var(--colorContentSubtleFg)"><span>Cadena de bloques</span><span>Tokens</span><span>Tamaño</span><span>Nivel</span><span>Aciertos</span></div>
+                <div style="display:grid;grid-template-columns:1.7fr 0.8fr 0.8fr 0.7fr 0.7fr;gap:8px;padding:9px 12px;border-top:1px solid var(--colorBlackA02);font-size:12.5px;line-height:17px;background:var(--colorTeal01)"><span><span style="font-family:var(--fontFamilyMono);font-size:11.5px">a91f…c3</span> · prompt de sistema</span><span>2,048</span><span>0.67 GB</span><span>DRAM</span><span style="font-weight:700">1.2M</span></div>
+                <div style="display:grid;grid-template-columns:1.7fr 0.8fr 0.8fr 0.7fr 0.7fr;gap:8px;padding:9px 12px;border-top:1px solid var(--colorBlackA02);font-size:12.5px;line-height:17px"><span><span style="font-family:var(--fontFamilyMono);font-size:11.5px">7e02…9b</span> · esquemas de herramientas</span><span>4,096</span><span>1.3 GB</span><span>DRAM</span><span>310k</span></div>
+                <div style="display:grid;grid-template-columns:1.7fr 0.8fr 0.8fr 0.7fr 0.7fr;gap:8px;padding:9px 12px;border-top:1px solid var(--colorBlackA02);font-size:12.5px;line-height:17px"><span><span style="font-family:var(--fontFamilyMono);font-size:11.5px">d4c8…51</span> · contrato de 90 páginas</span><span>32,768</span><span>10.7 GB</span><span>NVMe</span><span>46</span></div>
+                <div style="display:grid;grid-template-columns:1.7fr 0.8fr 0.8fr 0.7fr 0.7fr;gap:8px;padding:9px 12px;border-top:1px solid var(--colorBlackA02);font-size:12.5px;line-height:17px"><span><span style="font-family:var(--fontFamilyMono);font-size:11.5px">03bb…e7</span> · chat, turnos 1 a 6</span><span>1,536</span><span>0.5 GB</span><span>NVMe</span><span>3</span></div>
+              </div>
+              <p style="margin:0;font-size:12.5px;line-height:17px;color:var(--colorContentSubtleFg);text-wrap:pretty">Cada hash se encadena con el de su bloque padre, así que confirmar el bloque i confirma todos los anteriores. Los prompts de sistema compartidos se aciertan millones de veces; el prefijo de un chat privado, quizá unas pocas.</p>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="font-size:12px;font-weight:700;color:var(--colorContentSubtleFg)">Niveles</div>
+              <div style="padding:9px 12px;border-radius:10px;background:var(--colorTeal01)"><div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:600">DRAM · 16 TB</span><span style="font-size:12px;font-weight:600">50 GB/s de salida</span></div><div style="height:6px;border-radius:3px;background:var(--colorWhiteA07);margin:6px 0 4px;overflow:hidden"><div style="width:31%;height:100%;background:var(--colorTeal04)"></div></div><div style="font-size:12.5px;line-height:17px">31% usado · prefijos calientes</div></div>
+              <div style="padding:9px 12px;border-radius:10px;background:var(--colorTeal01)"><div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:600">NVMe · 400 TB</span><span style="font-size:12px;font-weight:600">12 GB/s de salida</span></div><div style="height:6px;border-radius:3px;background:var(--colorWhiteA07);margin:6px 0 4px;overflow:hidden"><div style="width:68%;height:100%;background:var(--colorTeal04)"></div></div><div style="font-size:12.5px;line-height:17px">68% usado · prefijos templados</div></div>
+              <div style="padding:9px 12px;border-radius:10px;background:var(--colorGrey01);border:1px solid var(--colorBlackA02)"><div style="font-weight:600">Desalojo</div><div style="font-size:12.5px;line-height:17px;color:var(--colorContentSubtleFg)">el menos usado recientemente, ponderado por tasa de aciertos; lo que lleva una hora sin tocarse se va primero</div></div>
+              <button type="button" onClick="{{ openTierNet }}" style="height:38px;border-radius:var(--radiusElementStandard);border:0;background:var(--colorActionPrimaryBg);color:var(--colorActionPrimaryFg);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer" style-hover="background:var(--colorActionPrimaryBgHovered)" style-active="background:var(--colorActionPrimaryBgPressed)">Pruébalo: ¿gana restaurar o recalcular?</button>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;min-width:0">
+            <div style="flex:1;min-width:0;padding:5px 8px;border-radius:8px;background:var(--colorPurple01);text-align:center"><div style="font-size:12px;line-height:15px;font-weight:700;color:var(--colorPurple08)">Prefill</div><div style="font-size:11px;line-height:14px;color:var(--colorContentSubtleFg)">termina</div></div>
+            <svg width="16" height="12" viewBox="0 0 16 12" style="flex:none" aria-hidden="true"><path d="M1 6h13M10 2l4 4-4 4" stroke="var(--colorBlackA05)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+            <div style="flex:1;min-width:0;padding:5px 8px;border-radius:8px;background:var(--colorTeal01);text-align:center"><div style="font-size:12px;line-height:15px;font-weight:700">Hash</div><div style="font-size:11px;line-height:14px">los bloques</div></div>
+            <svg width="16" height="12" viewBox="0 0 16 12" style="flex:none" aria-hidden="true"><path d="M1 6h13M10 2l4 4-4 4" stroke="var(--colorBlackA05)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+            <div style="flex:1;min-width:0;padding:5px 8px;border-radius:8px;background:var(--colorTeal01);text-align:center"><div style="font-size:12px;line-height:15px;font-weight:700">Publicar</div><div style="font-size:11px;line-height:14px">al almacén</div></div>
+            <svg width="16" height="12" viewBox="0 0 16 12" style="flex:none" aria-hidden="true"><path d="M1 6h13M10 2l4 4-4 4" stroke="var(--colorBlackA05)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+            <div style="flex:1;min-width:0;padding:5px 8px;border-radius:8px;background:var(--colorGrey01);text-align:center"><div style="font-size:12px;line-height:15px;font-weight:700">Coincidir</div><div style="font-size:11px;line-height:14px;color:var(--colorContentSubtleFg)">con una petición posterior</div></div>
+            <svg width="16" height="12" viewBox="0 0 16 12" style="flex:none" aria-hidden="true"><path d="M1 6h13M10 2l4 4-4 4" stroke="var(--colorBlackA05)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+            <div style="flex:1;min-width:0;padding:5px 8px;border-radius:8px;background:var(--colorTeal01);text-align:center"><div style="font-size:12px;line-height:15px;font-weight:700">Restaurar</div><div style="font-size:11px;line-height:14px">por la red</div></div>
+            <svg width="16" height="12" viewBox="0 0 16 12" style="flex:none" aria-hidden="true"><path d="M1 6h13M10 2l4 4-4 4" stroke="var(--colorBlackA05)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+            <div style="flex:1;min-width:0;padding:5px 8px;border-radius:8px;background:var(--colorBlue01);text-align:center"><div style="font-size:12px;line-height:15px;font-weight:700;color:var(--colorBlue08)">Saltar</div><div style="font-size:11px;line-height:14px;color:var(--colorContentSubtleFg)">el prefill</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Máquina destacada: el nivel 1 vive dentro -->
+    <div ref="{{ heroRef }}" onClick="{{ onHero }}" style="position:absolute;left:620px;top:720px;width:160px;height:104px;border-radius:10px;background:var(--elevationSurfaceBg);border:1px solid var(--colorBlackA02);box-sizing:border-box;cursor:pointer">
+      <div style="position:absolute;inset:0;padding:14px 18px;display:flex;flex-direction:column;justify-content:center;gap:8px;opacity:{{ lod.i1 }};visibility:{{ lod.iv1 }}">
+        <div style="font-size:18px;line-height:22px;font-weight:600;color:var(--colorPurple08);white-space:nowrap">Nodo 14</div>
+        <div style="height:14px;border-radius:4px;background:var(--colorPurple02);display:flex;align-items:center;gap:6px;padding:0 8px"><span style="width:6px;height:6px;border-radius:9999px;background:var(--colorActionPrimaryBg)"></span><span style="width:6px;height:6px;border-radius:9999px;background:var(--colorPurple04)"></span></div>
+        <div style="height:14px;border-radius:4px;background:var(--colorPurple02);display:flex;align-items:center;gap:6px;padding:0 8px"><span style="width:6px;height:6px;border-radius:9999px;background:var(--colorActionPrimaryBg)"></span><span style="width:6px;height:6px;border-radius:9999px;background:var(--colorPurple04)"></span></div>
+      </div>
+      <div style="position:absolute;inset:-3px;border-radius:13px;border:3px solid var(--colorActionPrimaryBg);pointer-events:none;opacity:{{ lod.i1 }}"></div>
+
+      <div ref="{{ l1Ref }}" style="position:absolute;left:0;top:0;width:948px;height:612px;transform:scale(0.1666667);transform-origin:0 0;opacity:{{ lod.c1 }};visibility:{{ lod.v1 }}">
+        <div style="position:absolute;inset:0;border-radius:54px;background:var(--elevationSurfaceBg);box-sizing:border-box;padding:24px 30px 26px;font-size:14px;line-height:20px;display:flex;flex-direction:column;gap:14px;text-align:left;cursor:default">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+            <div style="display:flex;align-items:center;gap:8px;height:30px;padding:0 14px 0 10px;border-radius:9999px;background:var(--colorBlue01);color:var(--colorBlue08);font-size:12.5px;font-weight:600;white-space:nowrap"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.75" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>Peticiones que entran · desde el planificador</div>
+            <div style="display:flex;align-items:center;gap:8px;height:30px;padding:0 10px 0 14px;border-radius:9999px;background:var(--colorGrey01);border:1px solid var(--colorBlackA02);font-size:12.5px;font-weight:600;white-space:nowrap">Pares · los otros 7 nodos de esta réplica<svg width="16" height="14" viewBox="0 0 16 14" aria-hidden="true"><path d="M2 7h12M5 4L2 7l3 3M11 4l3 3-3 3" stroke="currentColor" strokeWidth="1.75" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg></div>
+          </div>
+          <div>
+            <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:12px;font-weight:700;color:var(--colorActionPrimaryBg)">Nivel 1</span><span style="font-size:22px;line-height:28px;font-weight:600">Dentro de una máquina</span></div>
+            <p style="margin:2px 0 0;color:var(--colorContentSubtleFg);text-wrap:pretty">Nodo 14 de la réplica: ocho GPUs que guardan cada una un trozo de todas las capas, un host que baja la caché KV fría a DRAM y NVMe, y NICs que lo mantienen sincronizado con sus pares y con el almacén KV compartido.</p>
+          </div>
+          <div style="display:grid;grid-template-columns:262px minmax(0,1fr);gap:22px;flex:1;min-height:0;align-items:start">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="font-size:12px;font-weight:700;color:var(--colorContentSubtleFg)">Host</div>
+              <div style="padding:9px 12px;border-radius:10px;background:var(--colorGrey01);border:1px solid var(--colorBlackA02)"><div style="font-weight:600">CPU · 2 zócalos</div><div style="font-size:12.5px;line-height:17px;color:var(--colorContentSubtleFg)">tokeniza, agrupa y dirige las GPUs</div></div>
+              <div style="padding:9px 12px;border-radius:10px;background:var(--colorTeal01);border:1px solid var(--colorTeal03)"><div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:600">DRAM del host · 2 TB</span><span style="font-size:12px;font-weight:600">64 GB/s</span></div><div style="font-size:12.5px;line-height:17px">caché KV templada, vía PCIe</div></div>
+              <div style="padding:9px 12px;border-radius:10px;background:var(--colorTeal01);border:1px solid var(--colorTeal03)"><div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:600">NVMe · 4 × 7.6 TB</span><span style="font-size:12px;font-weight:600">28 GB/s</span></div><div style="font-size:12.5px;line-height:17px">caché KV fría, en striping</div></div>
+              <div style="padding:9px 12px;border-radius:10px;background:var(--colorGrey01);border:1px solid var(--colorBlackA02)"><div style="font-weight:600">NICs · 8 × 400 Gb/s</div><div style="font-size:12.5px;line-height:17px;color:var(--colorContentSubtleFg)">a los pares y al almacén KV</div></div>
+              <button type="button" onClick="{{ openTier }}" style="height:38px;border-radius:var(--radiusElementStandard);border:0;background:var(--colorActionPrimaryBg);color:var(--colorActionPrimaryFg);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer" style-hover="background:var(--colorActionPrimaryBgHovered)" style-active="background:var(--colorActionPrimaryBgPressed)">Pruébalo: ¿merece la pena?</button>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><span style="font-size:12px;font-weight:700;color:var(--colorContentSubtleFg)">8 GPUs · un trozo de cada capa en cada una</span><span style="font-size:12px;color:var(--colorContentSubtlestFg)">NVLink entre ellas, 900 GB/s</span></div>
+              <div style="display:grid;grid-template-columns:repeat(4,140px);gap:12px">
+                <sc-for list="{{ gpusBefore }}" as="g" hint-placeholder-count="1">
+                  <div style="width:140px;height:91px;box-sizing:border-box;border-radius:8px;background:var(--colorGrey01);border:1px solid var(--colorBlackA02);padding:8px 10px;display:flex;flex-direction:column;gap:6px">
+                    <div style="display:flex;justify-content:space-between;font-size:12px;line-height:16px;font-weight:700">{{ g.label }}<span style="font-weight:500;color:var(--colorContentSubtleFg)">80 GB</span></div>
+                    <div style="flex:1;display:grid;grid-template-columns:44px minmax(0,1fr);gap:6px;min-height:0"><div style="border-radius:5px;background:var(--colorBlue03)"></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px"><div style="border-radius:2px;background:var(--colorPurple04)"></div><div style="border-radius:2px;background:var(--colorPurple04)"></div><div style="border-radius:2px;background:var(--colorPurple04)"></div><div style="border-radius:2px;background:var(--colorPurple04)"></div><div style="border-radius:2px;background:var(--colorPurple04)"></div><div style="border-radius:2px;background:var(--colorPurple04)"></div><div style="border-radius:2px;background:var(--colorPurple04)"></div><div style="border-radius:2px;background:var(--colorPurple04)"></div></div></div>
+                  </div>
+                </sc-for>
+
+                <!-- GPU destacada: el nivel 2 vive dentro -->
+                <div ref="{{ gpuRef }}" onClick="{{ onGpu }}" style="position:relative;width:140px;height:91px;box-sizing:border-box;border-radius:8px;background:var(--elevationSurfaceBg);border:1px solid var(--colorBlackA02);cursor:pointer">
+                  <div style="position:absolute;inset:0;padding:8px 10px;display:flex;flex-direction:column;gap:6px;opacity:{{ lod.i2 }};visibility:{{ lod.iv2 }}">
+                    <div style="display:flex;justify-content:space-between;font-size:12px;line-height:16px;font-weight:700;color:var(--colorPurple08)">GPU 1<span style="font-weight:600;color:var(--colorActionPrimaryBg)">Entrar</span></div>
+                    <div style="flex:1;display:grid;grid-template-columns:44px minmax(0,1fr);gap:6px;min-height:0"><div style="border-radius:5px;background:var(--colorBlue04)"></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px"><div style="border-radius:2px;background:var(--colorActionPrimaryBg)"></div><div style="border-radius:2px;background:var(--colorActionPrimaryBg)"></div><div style="border-radius:2px;background:var(--colorActionPrimaryBg)"></div><div style="border-radius:2px;background:var(--colorActionPrimaryBg)"></div><div style="border-radius:2px;background:var(--colorActionPrimaryBg)"></div><div style="border-radius:2px;background:var(--colorActionPrimaryBg)"></div><div style="border-radius:2px;background:var(--colorActionPrimaryBg)"></div><div style="border-radius:2px;background:var(--colorActionPrimaryBg)"></div></div></div>
+                  </div>
+                  <div style="position:absolute;inset:-3px;border-radius:11px;border:3px solid var(--colorActionPrimaryBg);pointer-events:none;opacity:{{ lod.i2 }}"></div>
+
+                  <div style="position:absolute;left:0;top:0;width:828px;height:534px;transform:scale(0.1666667);transform-origin:0 0;opacity:{{ lod.c2 }};visibility:{{ lod.v2 }}">
+                    <div style="position:absolute;inset:0;border-radius:42px;background:var(--elevationSurfaceBg);box-sizing:border-box;padding:22px 26px;font-size:14px;line-height:20px;display:flex;flex-direction:column;gap:14px;text-align:left;cursor:default">
+                      <div>
+                        <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:12px;font-weight:700;color:var(--colorActionPrimaryBg)">Nivel 2</span><span style="font-size:22px;line-height:28px;font-weight:600">Dentro de una GPU: memoria y cómputo</span></div>
+                        <p style="margin:2px 0 0;color:var(--colorContentSubtleFg);text-wrap:pretty">El decode es un problema de memoria. En cada paso se leen desde HBM el trozo de pesos de esta GPU y la caché KV del lote, y los núcleos acaban su parte de las cuentas mucho antes de que dejen de llegar los bytes.</p>
+                      </div>
+                      <div style="display:grid;grid-template-columns:minmax(0,1fr) 104px minmax(0,1fr);flex:1;min-height:0">
+                        <div style="border-radius:12px;border:1px solid var(--colorBlue03);background:var(--colorBlue01);padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-height:0">
+                          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-weight:700;color:var(--colorBlue08)">HBM · 80 GB</span><span style="font-size:12px;color:var(--colorContentSubtleFg)">memoria</span></div>
+                          <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:6px">
+                            <div style="flex:22 1 0;min-height:0;border-radius:8px;background:var(--colorActionPrimaryBg);color:var(--colorActionPrimaryFg);padding:0 10px;display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:600"><span>Pesos · el trozo de esta GPU</span><span>17.5 GB</span></div>
+                            <div style="flex:70 1 0;min-height:0;border-radius:8px;background:var(--colorTeal01);padding:8px 10px;display:flex;flex-direction:column;gap:6px">
+                              <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:600"><span>Caché KV · bloques paginados</span><span>unos 56 GB</span></div>
+                              <div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(8,1fr);grid-auto-rows:1fr;gap:4px"><sc-for list="{{ kvBlocks }}" as="b" hint-placeholder-count="32"><div style="border-radius:3px;background:{{ b.bg }};border:1px {{ b.dash }} {{ b.border }};box-sizing:border-box"></div></sc-for></div>
+                              <div style="display:flex;gap:12px;font-size:11px;line-height:14px"><span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--colorTeal04)"></span>prefijo compartido</span><span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--elevationSurfaceBg);border:1px solid var(--colorTeal04);box-sizing:border-box"></span>activo</span><span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;border:1px dashed var(--colorBlackA05);box-sizing:border-box"></span>libre</span></div>
+                            </div>
+                            <div style="flex:8 1 0;min-height:0;border-radius:8px;background:var(--colorGrey02);padding:0 10px;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--colorContentSubtleFg)"><span>Activaciones, temporales</span><span>6.5 GB</span></div>
+                          </div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:0 6px;text-align:center">
+                          <span style="font-size:14px;font-weight:700;color:var(--colorBlue08)">3.35 TB/s</span>
+                          <svg width="88" height="22" viewBox="0 0 88 22" aria-hidden="true"><path d="M8 11h72M16 4l-8 7 8 7M72 4l8 7-8 7" stroke="var(--colorBlue06)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+                          <span style="font-size:11.5px;line-height:15px;color:var(--colorContentSubtleFg)">cada paso de decode: todo el trozo más la KV de este lote</span>
+                        </div>
+                        <div style="border-radius:12px;border:1px solid var(--colorPurple03);background:var(--colorPurple01);padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-height:0">
+                          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-weight:700;color:var(--colorPurple08)">Cómputo · 132 SMs</span><span style="font-size:12px;color:var(--colorContentSubtleFg)">1,979 TFLOPS FP8</span></div>
+                          <div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(12,1fr);grid-auto-rows:1fr;gap:4px"><sc-for list="{{ sms }}" as="m" hint-placeholder-count="132"><div style="border-radius:3px;background:{{ m.bg }}"></div></sc-for></div>
+                          <p style="margin:0;font-size:12.5px;line-height:17px;color:var(--colorContentSubtleFg)">Los tensor cores están parados casi todo el paso de decode, esperando bytes. El prefill es lo contrario y los mantiene saturados.</p>
+                        </div>
+                      </div>
+                      <div style="display:flex;gap:10px">
+                        <button type="button" onClick="{{ openDecode }}" style="flex:1;height:38px;border-radius:var(--radiusElementStandard);border:0;background:var(--colorActionPrimaryBg);color:var(--colorActionPrimaryFg);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer" style-hover="background:var(--colorActionPrimaryBgHovered)" style-active="background:var(--colorActionPrimaryBgPressed)">Pruébalo: calculadora del paso de decode</button>
+                        <button type="button" onClick="{{ openBlock }}" style="flex:1;height:38px;border-radius:var(--radiusElementStandard);border:1px solid var(--colorBlackA03);background:var(--elevationSurfaceBg);color:var(--colorContentFg);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer" style-hover="background:var(--colorBlackA01)" style-active="background:var(--colorBlackA02)">Pruébalo: admitir y desalojar bloques KV</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <sc-for list="{{ gpusAfter }}" as="g" hint-placeholder-count="6">
+                  <div style="width:140px;height:91px;box-sizing:border-box;border-radius:8px;background:var(--colorGrey01);border:1px solid var(--colorBlackA02);padding:8px 10px;display:flex;flex-direction:column;gap:6px">
+                    <div style="display:flex;justify-content:space-between;font-size:12px;line-height:16px;font-weight:700">{{ g.label }}<span style="font-weight:500;color:var(--colorContentSubtleFg)">80 GB</span></div>
+                    <div style="flex:1;display:grid;grid-template-columns:44px minmax(0,1fr);gap:6px;min-height:0"><div style="border-radius:5px;background:var(--colorBlue03)"></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px"><div style="border-radius:2px;background:var(--colorPurple04)"></div><div style="border-radius:2px;background:var(--colorPurple04)"></div><div style="border-radius:2px;background:var(--colorPurple04)"></div><div style="border-radius:2px;background:var(--colorPurple04)"></div><div style="border-radius:2px;background:var(--colorPurple04)"></div><div style="border-radius:2px;background:var(--colorPurple04)"></div><div style="border-radius:2px;background:var(--colorPurple04)"></div><div style="border-radius:2px;background:var(--colorPurple04)"></div></div></div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div style="padding:9px 12px;border-radius:10px;background:var(--colorBlue01)"><div style="font-weight:600;color:var(--colorBlue08)">HBM en este nodo · 640 GB</div><div style="font-size:12.5px;line-height:17px;color:var(--colorContentSubtleFg)">140 GB de pesos, el resto caché KV caliente</div></div>
+                <div style="padding:9px 12px;border-radius:10px;background:var(--colorPurple01)"><div style="font-weight:600;color:var(--colorPurple08)">Cómputo · 15.8 PFLOPS FP8</div><div style="font-size:12.5px;line-height:17px;color:var(--colorContentSubtleFg)">el prefill lo satura, el decode apenas lo toca</div></div>
+              </div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:262px minmax(0,1fr);gap:22px;align-items:center">
+            <div style="display:flex;align-items:center;gap:8px;height:34px;padding:0 14px 0 10px;border-radius:9999px;background:var(--colorTeal01);font-size:12.5px;font-weight:600;white-space:nowrap;justify-self:start"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 2v10M3 8l4 4 4-4" stroke="currentColor" strokeWidth="1.75" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>Caché KV fría · al almacén compartido</div>
+            <div style="display:flex;align-items:center;gap:6px;min-width:0">
+              <div style="flex:1;min-width:0;padding:5px 8px;border-radius:8px;background:var(--colorGrey01);text-align:center"><div style="font-size:12px;line-height:15px;font-weight:700">Petición</div><div style="font-size:11px;line-height:14px;color:var(--colorContentSubtleFg)">llega en lote</div></div>
+              <svg width="16" height="12" viewBox="0 0 16 12" style="flex:none" aria-hidden="true"><path d="M1 6h13M10 2l4 4-4 4" stroke="var(--colorBlackA05)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+              <div style="flex:1;min-width:0;padding:5px 8px;border-radius:8px;background:var(--colorPurple01);text-align:center"><div style="font-size:12px;line-height:15px;font-weight:700;color:var(--colorPurple08)">Prefill</div><div style="font-size:11px;line-height:14px;color:var(--colorContentSubtleFg)">limitado por cómputo</div></div>
+              <svg width="16" height="12" viewBox="0 0 16 12" style="flex:none" aria-hidden="true"><path d="M1 6h13M10 2l4 4-4 4" stroke="var(--colorBlackA05)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+              <div style="flex:1;min-width:0;padding:5px 8px;border-radius:8px;background:var(--colorTeal01);text-align:center"><div style="font-size:12px;line-height:15px;font-weight:700">Caché KV</div><div style="font-size:11px;line-height:14px">aterriza en HBM</div></div>
+              <svg width="16" height="12" viewBox="0 0 16 12" style="flex:none" aria-hidden="true"><path d="M1 6h13M10 2l4 4-4 4" stroke="var(--colorBlackA05)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+              <div style="flex:1;min-width:0;padding:5px 8px;border-radius:8px;background:var(--colorBlue01);text-align:center"><div style="font-size:12px;line-height:15px;font-weight:700;color:var(--colorBlue08)">Decode</div><div style="font-size:11px;line-height:14px;color:var(--colorContentSubtleFg)">limitado por ancho de banda</div></div>
+              <svg width="16" height="12" viewBox="0 0 16 12" style="flex:none" aria-hidden="true"><path d="M1 6h13M10 2l4 4-4 4" stroke="var(--colorBlackA05)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+              <div style="flex:1;min-width:0;padding:5px 8px;border-radius:8px;background:var(--colorGrey01);text-align:center"><div style="font-size:12px;line-height:15px;font-weight:700">Tokens</div><div style="font-size:11px;line-height:14px;color:var(--colorContentSubtleFg)">salen en streaming</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="position:absolute;left:530px;top:664px;height:40px;padding:0 18px;border-radius:9999px;background:var(--colorActionPrimaryBg);color:var(--colorActionPrimaryFg);display:flex;align-items:center;font-size:22px;font-weight:600;white-space:nowrap;pointer-events:none;opacity:{{ lod.i1 }};visibility:{{ lod.iv1 }}">Empieza aquí · haz clic para entrar</div>
+  </div>
+
+  <div onMouseDown="{{ stop }}" style="position:absolute;right:16px;bottom:16px;display:flex;align-items:center;gap:2px;height:36px;padding:0 4px;border-radius:var(--radiusElementRound);background:var(--elevationSurfaceFloatingBg);box-shadow:var(--elevationSurfaceFloatingShadow);cursor:default">
+    <button type="button" onClick="{{ zoomOut }}" aria-label="Alejar" style="width:28px;height:28px;border-radius:9999px;border:0;background:transparent;color:var(--colorContentFg);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0" style-hover="background:var(--colorBlackA01)" style-active="background:var(--colorBlackA02)"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 7h10" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"></path></svg></button>
+    <span style="min-width:46px;text-align:center;font-size:12px;font-weight:600;color:var(--colorContentSubtleFg)">{{ zoom }}</span>
+    <button type="button" onClick="{{ zoomIn }}" aria-label="Acercar" style="width:28px;height:28px;border-radius:9999px;border:0;background:transparent;color:var(--colorContentFg);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0" style-hover="background:var(--colorBlackA01)" style-active="background:var(--colorBlackA02)"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 2v10M2 7h10" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"></path></svg></button>
+  </div>
+</div>
+
+<div style="display:flex;gap:16px 32px;align-items:flex-start;flex-wrap:wrap;margin-top:12px">
+  <div style="flex:1 1 420px;min-width:0;padding:12px 16px;border-radius:var(--radiusContainerStandard);background:var(--elevationSurfaceBg);border:1px solid var(--colorBlackA02);font-size:13px;line-height:19px;text-wrap:pretty"><span style="display:block;font-size:11px;line-height:16px;font-weight:700;color:var(--colorActionPrimaryBg);margin-bottom:2px">{{ levelTag }}</span>{{ caption }}</div>
+  <p style="flex:0 1 260px;margin:0;padding-top:12px;font-size:12px;line-height:18px;color:var(--colorContentSubtlestFg)">Rueda para hacer zoom, arrastra para desplazarte. La flecha derecha o abajo baja un nivel; la izquierda o arriba vuelve a salir.</p>
+</div>
+
+<sc-if value="{{ popoverOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;background:var(--colorUiOverlayBg);display:flex;align-items:center;justify-content:center;z-index:40;animation:azFade .15s ease-out both" onClick="{{ closePopover }}">
+    <div style="width:min(92vw,520px);max-height:85vh;overflow:auto;background:var(--elevationSurfaceBg);border-radius:var(--radiusContainerStandard);box-shadow:var(--elevationSurfaceFloatingShadow);padding:24px" onClick="{{ stop }}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px">
+        <h3 style="margin:0;font-size:18px;font-weight:600">{{ pv.title }}</h3>
+        <button type="button" onClick="{{ closePopover }}" aria-label="Cerrar" style="width:28px;height:28px;border-radius:var(--radiusElementRound);border:0;background:var(--colorBlackA01);color:var(--colorContentFg);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex:none" style-hover="background:var(--colorBlackA02)"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"></path></svg></button>
+      </div>
+
+      <sc-if value="{{ isDecode }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div><label style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:6px"><span>Lote de decode B</span><span style="color:var(--colorContentSubtleFg)">{{ dv.Bl }}</span></label><input type="range" min="0" max="7" step="1" value="{{ dv.Bexp }}" onChange="{{ onDecB }}" style="width:100%;accent-color:var(--colorActionPrimaryBg)"></div>
+          <div><label style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:6px"><span>Contexto por secuencia</span><span style="color:var(--colorContentSubtleFg)">{{ dv.ctxl }}</span></label><input type="range" min="0" max="6" step="1" value="{{ dv.ctxExp }}" onChange="{{ onDecCtx }}" style="width:100%;accent-color:var(--colorActionPrimaryBg)"></div>
+        </div>
+        <div style="background:var(--elevationSurfaceSunkenBg);border-radius:var(--radiusElementSoft);padding:16px;display:grid;grid-template-columns:repeat(2,1fr);gap:14px">
+          <div><div style="font-size:11px;color:var(--colorContentSubtleFg)">Tiempo por paso</div><div style="font-size:22px;font-weight:500">{{ dv.step }}</div></div>
+          <div><div style="font-size:11px;color:var(--colorContentSubtleFg)">Limitado por</div><div style="font-size:16px;font-weight:600;color:{{ dv.boundColor }}">{{ dv.bound }}</div></div>
+          <div><div style="font-size:11px;color:var(--colorContentSubtleFg)">Bytes de pesos leídos</div><div style="font-size:15px;font-weight:500">{{ dv.wBytes }}</div></div>
+          <div><div style="font-size:11px;color:var(--colorContentSubtleFg)">Bytes de KV leídos</div><div style="font-size:15px;font-weight:500">{{ dv.kvBytes }}</div></div>
+        </div>
+        <div style="position:relative;height:24px;border-radius:6px;overflow:hidden;background:var(--colorGrey02);margin-top:14px">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:{{ dv.memPct }}%;background:var(--colorBlue06);transition:width .3s ease"></div>
+          <div style="position:absolute;left:{{ dv.memPct }}%;top:0;bottom:0;width:{{ dv.compPct }}%;background:var(--colorActionPrimaryBg);transition:left .3s ease, width .3s ease"></div>
+        </div>
+        <p style="margin:14px 0 0;font-size:12px;line-height:18px;color:var(--colorContentSubtleFg)">H100 SXM, TP = 8, pesos FP8, KV en BF16, modelo denso de clase 70B. El azul es tiempo de memoria y el morado tiempo de cálculo; el mayor de los dos marca el paso.</p>
+      </sc-if>
+
+      <sc-if value="{{ isTier }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-bottom:16px"><label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px">Ruta de restauración</label>
+          <select value="{{ tv.sel }}" onChange="{{ onTierSel }}" style="width:100%;height:36px;border-radius:var(--radiusElementStandard);border:1px solid var(--colorBlackA03);padding:0 10px;font-family:inherit;font-size:13px;background:var(--elevationSurfaceBg);color:var(--colorContentFg)">
+            <option value="dram">DRAM del host por PCIe, 64 GB/s</option>
+            <option value="nvme">NVMe, 4 unidades en striping, 28 GB/s</option>
+            <option value="net">Almacén KV en red, 50 GB/s</option>
+          </select>
+        </div>
+        <div style="background:var(--elevationSurfaceSunkenBg);border-radius:var(--radiusElementSoft);padding:16px;display:grid;grid-template-columns:repeat(2,1fr);gap:14px">
+          <div><div style="font-size:11px;color:var(--colorContentSubtleFg)">Restaurar 1k tokens</div><div style="font-size:22px;font-weight:500">{{ tv.restore }}</div></div>
+          <div><div style="font-size:11px;color:var(--colorContentSubtleFg)">Recalcular con prefill</div><div style="font-size:22px;font-weight:500">{{ tv.recompute }}</div></div>
+        </div>
+        <div style="margin-top:14px;padding:10px 14px;border-radius:var(--radiusElementStandard);background:{{ tv.tagBg }};color:{{ tv.tagFg }};font-size:13px;font-weight:600">{{ tv.verdict }}</div>
+        <p style="margin:14px 0 0;font-size:12px;line-height:18px;color:var(--colorContentSubtleFg)">Un nivel solo se gana su sitio si restaurar desde él es más rápido que recalcular los mismos tokens con prefill (aquí, 70B denso, FP8, 50% de MFU en 8×H100).</p>
+      </sc-if>
+
+      <sc-if value="{{ isRoute }}" hint-placeholder-val="{{ false }}">
+        <p style="margin:0 0 14px;font-size:13px;line-height:19px;color:var(--colorContentSubtleFg)">Dos candidatas: la réplica 7, que quizá ya tenga parte de este prompt, y una réplica ociosa sin nada en caché y con un prefill por delante en su cola.</p>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px">
+          <div><label style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:6px"><span>Longitud del prompt</span><span style="color:var(--colorContentSubtleFg)">{{ rv.promptL }}</span></label><input type="range" min="0" max="5" step="1" value="{{ rv.promptExp }}" onChange="{{ onRoutePrompt }}" style="width:100%;accent-color:var(--colorActionPrimaryBg)"></div>
+          <div><label style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:6px"><span>Prefijo ya en caché en la réplica 7</span><span style="color:var(--colorContentSubtleFg)">{{ rv.cachedL }}</span></label><input type="range" min="0" max="100" step="10" value="{{ rv.cached }}" onChange="{{ onRouteCached }}" style="width:100%;accent-color:var(--colorActionPrimaryBg)"></div>
+          <div><label style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:6px"><span>Prefills en cola en la réplica 7</span><span style="color:var(--colorContentSubtleFg)">{{ rv.queueL }}</span></label><input type="range" min="0" max="6" step="1" value="{{ rv.queue }}" onChange="{{ onRouteQueue }}" style="width:100%;accent-color:var(--colorActionPrimaryBg)"></div>
+        </div>
+        <div style="background:var(--elevationSurfaceSunkenBg);border-radius:var(--radiusElementSoft);padding:16px;display:flex;flex-direction:column;gap:12px">
+          <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span style="font-weight:600;color:var(--colorPurple08)">Réplica 7</span><span style="font-weight:500">{{ rv.ttftA }}</span></div><div style="height:12px;border-radius:6px;background:var(--colorGrey02);overflow:hidden"><div style="height:100%;width:{{ rv.barA }}%;background:var(--colorActionPrimaryBg);transition:width .3s ease"></div></div></div>
+          <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span style="font-weight:600">Réplica ociosa</span><span style="font-weight:500">{{ rv.ttftB }}</span></div><div style="height:12px;border-radius:6px;background:var(--colorGrey02);overflow:hidden"><div style="height:100%;width:{{ rv.barB }}%;background:var(--colorGrey05);transition:width .3s ease"></div></div></div>
+        </div>
+        <div style="margin-top:14px;padding:10px 14px;border-radius:var(--radiusElementStandard);background:{{ rv.tagBg }};color:{{ rv.tagFg }};font-size:13px;font-weight:600">{{ rv.verdict }}</div>
+        <p style="margin:14px 0 0;font-size:12px;line-height:18px;color:var(--colorContentSubtleFg)">Tiempo hasta el primer token = esperar los prefills que hay por delante en la cola + hacer prefill de los tokens que no están en caché (8×H100, 70B denso, FP8, 50% de MFU, más un salto de 2 ms).</p>
+      </sc-if>
+
+      <sc-if value="{{ isBlock }}" hint-placeholder-val="{{ false }}">
+        <p style="margin:0 0 14px;font-size:13px;line-height:19px;color:var(--colorContentSubtleFg)">Las peticiones A y B comparten un bloque de prompt de sistema. Admite las dos, termina una y observa los refcounts y la cola de libres.</p>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
+          <sc-for list="{{ bv.blocks }}" as="b" hint-placeholder-count="4"><div style="border-radius:8px;padding:10px 4px;text-align:center;background:{{ b.bg }};border:1.5px {{ b.dash }} {{ b.border }};transition:background .25s ease, border-color .25s ease"><div style="font-size:12px;font-weight:700">{{ b.id }}</div><div style="font-size:10px;color:var(--colorContentSubtleFg);margin-top:2px">{{ b.sub }}</div></div></sc-for>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+          <button type="button" onClick="{{ onAdmitA }}" style="height:32px;padding:0 12px;border-radius:var(--radiusElementStandard);border:1px solid var(--colorBlackA03);background:var(--elevationSurfaceBg);color:var(--colorContentFg);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer" style-hover="background:var(--colorBlackA01)">Admitir A</button>
+          <button type="button" onClick="{{ onAdmitB }}" style="height:32px;padding:0 12px;border-radius:var(--radiusElementStandard);border:1px solid var(--colorBlackA03);background:var(--elevationSurfaceBg);color:var(--colorContentFg);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer" style-hover="background:var(--colorBlackA01)">Admitir B</button>
+          <button type="button" onClick="{{ onFinishA }}" style="height:32px;padding:0 12px;border-radius:var(--radiusElementStandard);border:1px solid var(--colorBlackA03);background:var(--elevationSurfaceBg);color:var(--colorContentFg);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer" style-hover="background:var(--colorBlackA01)">Terminar A</button>
+          <button type="button" onClick="{{ onFinishB }}" style="height:32px;padding:0 12px;border-radius:var(--radiusElementStandard);border:1px solid var(--colorBlackA03);background:var(--elevationSurfaceBg);color:var(--colorContentFg);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer" style-hover="background:var(--colorBlackA01)">Terminar B</button>
+          <button type="button" onClick="{{ onBlockReset }}" style="height:32px;padding:0 12px;border-radius:var(--radiusElementStandard);border:0;background:var(--colorBlackA01);color:var(--colorContentFg);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer" style-hover="background:var(--colorBlackA02)">Reiniciar</button>
+        </div>
+        <div style="min-height:60px;border-radius:var(--radiusElementStandard);background:var(--elevationSurfaceSunkenBg);padding:10px 12px;font-family:var(--fontFamilyMono);font-size:11px;line-height:17px">
+          <sc-for list="{{ bv.log }}" as="l" hint-placeholder-count="1"><div style="color:{{ l.c }};animation:azFade .25s ease-out both">{{ l.msg }}</div></sc-for>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startLevel&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Flota&quot;,&quot;options&quot;:[&quot;Flota&quot;,&quot;Una máquina&quot;,&quot;Memoria y GPU&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Navegación&quot;},&quot;flightSpeed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1,&quot;min&quot;:0.5,&quot;max&quot;:2,&quot;step&quot;:0.1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Navegación&quot;},&quot;showInterconnect&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Flota&quot;}}">
+const P=70e9,BW1=3.35e12,F1=1979e12,N=8,KVB=327680,OVH=0.00025;
+const BW=BW1*N,FLOPS=F1*N;
+const fmtMs=v=>v>=1?v.toFixed(v>=10?0:1)+' ms':(v*1000).toFixed(0)+' µs';
+const fmtBytes=b=>b>=1e12?(b/1e12).toFixed(2)+' TB':b>=1e9?(b/1e9).toFixed(1)+' GB':(b/1e6).toFixed(0)+' MB';
+const WORLD={x:0,y:-100,w:2500,h:1500},HERO={x:620,y:720,w:160,h:104},S1=1/6,S2=1/36,L1W=948;
+const NODES=[[450,536],[620,544],[790,532],[960,542],[450,728],[790,716],[960,726],[450,950],[620,960],[790,946],[960,956],[1380,470],[1540,478],[1700,466],[1860,474],[1380,648],[1540,656],[1700,644],[1860,652],[1750,990],[1910,998],[2070,986],[2230,994],[1750,1168],[1910,1176],[2070,1164],[2230,1172]].map((p,i)=>({id:i,x:p[0],y:p[1]}));
+const BOXES={node:HERO,sched:{x:200,y:540,w:160,h:104},kv:{x:200,y:920,w:160,h:104}},BACKEND={x:330,y:-80,w:900,h:440};
+const STOPS={
+  fleet:{label:'Flota',tag:'Nivel 0 · Flota',cap:'El backend del producto guarda el registro; las nubes de máquinas detrás del gateway hacen el trabajo. Cada nube es una región; el grupo punteado es una réplica, ocho máquinas que actúan como un solo motor. Haz clic en la máquina destacada para entrar. El backend, el planificador y el almacén KV también se abren.'},
+  backend:{label:'Backend del producto',tag:'Nivel 0 · Backend del producto',cap:'El sistema de registro. Las conversaciones, las llamadas a herramientas, los usuarios y el uso viven en bases de datos normales detrás de los servidores de aplicación; la flota no guarda nada de eso. En cada turno la aplicación recarga la conversación, añade el mensaje nuevo y lo envía todo otra vez por el gateway: justo por eso sale rentable la caché de prefijos.'},
+  node:{label:'Nodo 14',tag:'Nivel 1 · Una máquina',cap:'Ocho GPUs que guardan cada una un trozo de todas las capas, un host que baja la caché KV fría a DRAM y NVMe, y NICs hacia los pares y el almacén KV compartido. Haz clic en la GPU destacada.'},
+  gpu:{label:'GPU 1',tag:'Nivel 2 · Memoria y GPU',cap:'80 GB de HBM con un trozo de los pesos y bloques KV paginados, y núcleos que pasan casi todo el paso de decode esperando a esa memoria.'},
+  sched:{label:'Planificador',tag:'Nivel 1 · Planificador',cap:'Un enrutador con memoria. Ordena las réplicas según cuánta caché KV del prompt ya tienen, luego por memoria libre y profundidad de cola, y despacha. Prueba a enrutar una petición.'},
+  kv:{label:'Almacén KV',tag:'Nivel 1 · Almacén KV',cap:'Una caché de prefijos para toda la flota. Las réplicas publican los bloques KV terminados; las peticiones posteriores que coinciden los recuperan por red en vez de recalcularlos.'}};
+const NEXT={fleet:'node',node:'gpu',sched:'node',kv:'node',backend:'sched'},PREV={node:'fleet',sched:'fleet',kv:'fleet',gpu:'node',backend:'fleet'};
+const ramp=v=>Math.max(0,Math.min(1,(v-0.26)/0.34));
+const levelOf=s=>{const l1=ramp(s*S1),l2=ramp(s*S2);return l2>=.5?2:l1>=.5?1:0;};
+const fnv=s=>{let h=0x811c9dc5;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0;}return h.toString(16).slice(0,4);};
+const freshBlk=msg=>({blocks:[{id:'P0',ref:0,hash:null,label:null},{id:'P1',ref:0,hash:null,label:null},{id:'P2',ref:0,hash:null,label:null},{id:'P3',ref:0,hash:null,label:null}],map:{},queue:[0,1,2,3],reqs:{A:{status:'idle',table:[]},B:{status:'idle',table:[]}},log:[{msg,c:'var(--colorContentSubtleFg)'}]});
+const KV_BLOCKS=Array.from({length:32},(_,i)=>i<6?{bg:'var(--colorTeal04)',border:'var(--colorTeal04)',dash:'solid'}:i<26?{bg:'var(--elevationSurfaceBg)',border:'var(--colorTeal04)',dash:'solid'}:{bg:'transparent',border:'var(--colorBlackA05)',dash:'dashed'});
+const SMS=Array.from({length:132},(_,i)=>({bg:(i*7)%10<3?'var(--colorActionPrimaryBg)':'var(--colorPurple03)'}));
+const GPUS_BEFORE=[{label:'GPU 0'}],GPUS_AFTER=[2,3,4,5,6,7].map(n=>({label:'GPU '+n}));
+
+class Component extends DCLogic {
+  state={camX:0,camY:0,camScale:0.3,vw:1000,vh:600,atStop:'fleet',popover:null,dec:{Bexp:6,ctxExp:2},tier:{sel:'dram'},route:{promptExp:3,cached:60,queue:1},blk:freshBlk('4 bloques libres, cabeza de cola P0')};
+  vpRef=React.createRef();heroRef=React.createRef();l1Ref=React.createRef();gpuRef=React.createRef();
+  drag=null;moved=false;anim=null;pendingStart=true;
+
+  startLevel(){return {'Flota':'fleet','Una máquina':'node','Memoria y GPU':'gpu'}[this.props.startLevel]||'fleet';}
+  focusOf(){const {vw,vh,camX,camY,camScale:s}=this.state,cx=(vw/2-camX)/s,cy=(vh/2-camY)/s;for(const k in BOXES){const b=BOXES[k];if(cx>=b.x-b.w*.3&&cx<=b.x+b.w*1.3&&cy>=b.y-b.h*.3&&cy<=b.y+b.h*1.3)return k;}return null;}
+  curStop(){const lv=levelOf(this.state.camScale),f=lv>0?this.focusOf():null;if(!f)return this.state.atStop==='backend'?'backend':'fleet';return lv===2&&f==='node'?'gpu':f;}
+  componentDidMount(){
+    const el=this.vpRef.current;
+    this.wheel=e=>{
+      e.preventDefault();this.stopAnim();
+      const r=el.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;
+      const {camX,camY,camScale}=this.state,wx=(px-camX)/camScale,wy=(py-camY)/camScale;
+      const ns=Math.min(80,Math.max(0.12,camScale*Math.pow(1.0015,-e.deltaY)));
+      this.setState({camX:px-wx*ns,camY:py-wy*ns,camScale:ns,atStop:null});
+    };
+    el.addEventListener('wheel',this.wheel,{passive:false});
+    const fit=(w,h)=>this.setState({vw:w,vh:h},()=>{if(this.pendingStart){this.pendingStart=false;this.goTo(this.startLevel(),true);}else if(this.state.atStop!=null)this.goTo(this.state.atStop,true);});
+    if('ResizeObserver' in window){this.ro=new ResizeObserver(es=>{const r=es[0].contentRect;if(r.width>10)fit(r.width,r.height);});this.ro.observe(el);}
+    else fit(el.clientWidth,el.clientHeight);
+    this.kd=e=>{
+      if(this.state.popover||/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;
+      const cur=this.curStop();
+      if(e.key==='ArrowRight'||e.key==='ArrowDown'){const n=NEXT[cur];if(n){e.preventDefault();this.goTo(n);}}
+      else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){const p=PREV[cur];if(p){e.preventDefault();this.goTo(p);}}
+    };
+    document.addEventListener('keydown',this.kd);
+  }
+  componentWillUnmount(){if(this.ro)this.ro.disconnect();document.removeEventListener('keydown',this.kd);if(this.vpRef.current)this.vpRef.current.removeEventListener('wheel',this.wheel);this.stopAnim();}
+
+  stopAnim(){if(this.anim)cancelAnimationFrame(this.anim);this.anim=null;}
+  reduced(){return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);}
+  measureGpu(){
+    const l1=this.l1Ref.current,g=this.gpuRef.current;
+    if(!l1||!g)return {x:466,y:180,w:140,h:91};
+    const rr=l1.getBoundingClientRect(),tr=g.getBoundingClientRect(),k=(rr.width/L1W)||1;
+    return {x:(tr.left-rr.left)/k,y:(tr.top-rr.top)/k,w:tr.width/k,h:tr.height/k};
+  }
+  stopRect(id){
+    if(id==='fleet')return Object.assign({pad:.94},WORLD);
+    if(id==='backend')return Object.assign({pad:.9},BACKEND);
+    if(BOXES[id])return Object.assign({pad:.86},BOXES[id]);
+    const o=this.measureGpu();
+    return {x:HERO.x+1+o.x*S1,y:HERO.y+1+o.y*S1,w:o.w*S1,h:o.h*S1,pad:.84};
+  }
+  fitRect(r){const {vw,vh}=this.state,s=Math.min(vw/r.w,vh/r.h)*r.pad;return {scale:s,x:vw/2-s*(r.x+r.w/2),y:vh/2-s*(r.y+r.h/2)};}
+  goTo=(i,silent)=>{
+    const f=this.fitRect(this.stopRect(i));
+    this.setState({atStop:i,popover:null});
+    if(silent||this.reduced()){this.stopAnim();this.setState({camX:f.x,camY:f.y,camScale:f.scale});}
+    else this.fly(f);
+  };
+  fly(f,durOverride){
+    this.stopAnim();
+    const {vw,vh,camX,camY,camScale}=this.state;
+    const c0={x:(vw/2-camX)/camScale,y:(vh/2-camY)/camScale},c1={x:(vw/2-f.x)/f.scale,y:(vh/2-f.y)/f.scale};
+    const ls0=Math.log(camScale),ls1=Math.log(f.scale),zoomIn=ls1>ls0;
+    const speed=+this.props.flightSpeed||1;
+    const dur=(durOverride||Math.min(1500,450+230*Math.abs(ls1-ls0)))/speed,t0=performance.now();
+    const step=now=>{
+      const t=Math.min(1,(now-t0)/dur),e=t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+      const pe=zoomIn?1-Math.pow(1-e,2):e*e;
+      const s=Math.exp(ls0+(ls1-ls0)*e),cx=c0.x+(c1.x-c0.x)*pe,cy=c0.y+(c1.y-c0.y)*pe;
+      this.setState({camX:vw/2-s*cx,camY:vh/2-s*cy,camScale:s});
+      this.anim=t<1?requestAnimationFrame(step):null;
+    };
+    this.anim=requestAnimationFrame(step);
+  }
+  zoomBy=f=>{
+    const {vw,vh,camX,camY,camScale}=this.state,ns=Math.min(80,Math.max(0.12,camScale*f)),cx=(vw/2-camX)/camScale,cy=(vh/2-camY)/camScale;
+    this.setState({atStop:null});
+    if(this.reduced())this.setState({camX:vw/2-ns*cx,camY:vh/2-ns*cy,camScale:ns});else this.fly({scale:ns,x:vw/2-ns*cx,y:vh/2-ns*cy},260);
+  };
+  zoomIn=()=>this.zoomBy(1.7);
+  zoomOut=()=>this.zoomBy(1/1.7);
+  onBack=()=>this.goTo('fleet');
+  onUpLevel=()=>{const p=PREV[this.curStop()];if(p)this.goTo(p);};
+  onCrumb=e=>this.goTo(e.currentTarget.dataset.idx);
+  onSched=()=>{if(this.moved)return;if(levelOf(this.state.camScale)>=1)return;this.goTo('sched');};
+  onKv=()=>{if(this.moved)return;if(levelOf(this.state.camScale)>=1)return;this.goTo('kv');};
+  onBackend=()=>{if(this.moved)return;if(levelOf(this.state.camScale)>=1||this.state.atStop==='backend')return;this.goTo('backend');};
+  onDown=e=>{if(e.button!==0)return;this.stopAnim();this.drag={sx:e.clientX,sy:e.clientY,cx:this.state.camX,cy:this.state.camY};this.moved=false;};
+  onMove=e=>{if(!this.drag)return;const dx=e.clientX-this.drag.sx,dy=e.clientY-this.drag.sy;if(!this.moved&&Math.hypot(dx,dy)<4)return;this.moved=true;this.setState({camX:this.drag.cx+dx,camY:this.drag.cy+dy,atStop:null});};
+  onDragEnd=()=>{this.drag=null;};
+  onHero=()=>{if(this.moved)return;if(levelOf(this.state.camScale)>=1)return;this.goTo('node');};
+  onGpu=e=>{if(this.moved)return;e.stopPropagation();if(levelOf(this.state.camScale)>=2)return;this.goTo('gpu');};
+
+  openDecode=()=>this.setState({popover:'decode'});
+  openTier=()=>this.setState({popover:'tier'});
+  openBlock=()=>this.setState({popover:'block'});
+  openRoute=()=>this.setState({popover:'route'});
+  openTierNet=()=>this.setState({popover:'tier',tier:{sel:'net'}});
+  onRoutePrompt=e=>this.setState(s=>({route:Object.assign({},s.route,{promptExp:+e.target.value})}));
+  onRouteCached=e=>this.setState(s=>({route:Object.assign({},s.route,{cached:+e.target.value})}));
+  onRouteQueue=e=>this.setState(s=>({route:Object.assign({},s.route,{queue:+e.target.value})}));
+  routeCalc(){
+    const r=this.state.route,tokens=1024*Math.pow(2,r.promptExp),tokPerS=FLOPS*0.5/(2*P),pf=t=>t/tokPerS*1000;
+    const ttftA=r.queue*pf(tokens)+pf(tokens*(1-r.cached/100))+2,ttftB=2*pf(tokens)+2,toA=ttftA<=ttftB,mx=Math.max(ttftA,ttftB);
+    const skipped=(tokens*r.cached/100/1024).toFixed(1)+'k';
+    return {promptExp:r.promptExp,promptL:(tokens/1024)+'k tokens',cached:r.cached,cachedL:r.cached+'%',queue:r.queue,queueL:String(r.queue),
+      ttftA:fmtMs(ttftA),ttftB:fmtMs(ttftB),barA:ttftA/mx*100,barB:ttftB/mx*100,
+      verdict:toA?`Va a la réplica 7: ${fmtMs(ttftA)} hasta el primer token, ${skipped} tokens sin prefill`:`Va a la réplica ociosa: la réplica 7 tardaría ${fmtMs(ttftA)} frente a ${fmtMs(ttftB)}`,
+      tagBg:toA?'var(--colorFeedbackPositiveSubtleBg)':'var(--colorFeedbackInfoSubtleBg)',tagFg:toA?'var(--colorFeedbackPositiveSubtleFg)':'var(--colorFeedbackInfoSubtleFg)'};
+  }
+  closePopover=()=>this.setState({popover:null});
+  stop=e=>e.stopPropagation();
+  onDecB=e=>this.setState(s=>({dec:Object.assign({},s.dec,{Bexp:+e.target.value})}));
+  onDecCtx=e=>this.setState(s=>({dec:Object.assign({},s.dec,{ctxExp:+e.target.value})}));
+  onTierSel=e=>this.setState(s=>({tier:Object.assign({},s.tier,{sel:e.target.value})}));
+
+  decodeCalc(){
+    const B=Math.pow(2,this.state.dec.Bexp),ctx=1024*Math.pow(2,this.state.dec.ctxExp);
+    const wBytes=P,kvBytes=B*ctx*KVB;
+    const tMem=(wBytes+kvBytes)/BW,tComp=B*2*P/FLOPS,tStep=Math.max(tMem,tComp)+OVH,scale=tStep*1.15;
+    return {Bl:String(B),ctxl:(ctx>=1024?(ctx/1024)+'k':ctx),Bexp:this.state.dec.Bexp,ctxExp:this.state.dec.ctxExp,
+      step:fmtMs(tStep*1000),bound:tMem>=tComp?'Ancho de banda HBM':'Cómputo',boundColor:tMem>=tComp?'var(--colorBlue07)':'var(--colorPurple07)',
+      wBytes:fmtBytes(wBytes),kvBytes:fmtBytes(kvBytes),memPct:tMem/scale*100,compPct:tComp/scale*100};
+  }
+  tierCalc(){
+    const sel=this.state.tier.sel,bw={dram:64e9,nvme:28e9,net:50e9}[sel];
+    const restoreMs=1000*KVB/bw*1000,mfu=0.5,tokPerS=FLOPS*mfu/(2*P),recomputeMs=1000/tokPerS*1000,ok=restoreMs<recomputeMs;
+    return {sel,restore:fmtMs(restoreMs),recompute:fmtMs(recomputeMs),
+      verdict:ok?`Merece la pena: ${(recomputeMs/restoreMs).toFixed(1)}× más rápido que recalcular`:'Más lento que recalcular: mejor recalcular',
+      tagBg:ok?'var(--colorFeedbackPositiveSubtleBg)':'var(--colorFeedbackCriticalSubtleBg)',tagFg:ok?'var(--colorFeedbackPositiveSubtleFg)':'var(--colorFeedbackCriticalSubtleFg)'};
+  }
+  blog(msg){this.state.blk.log=[{msg,c:'var(--colorContentFg)'}].concat(this.state.blk.log).slice(0,6);}
+  admit(name){
+    const blk=this.state.blk,r=blk.reqs[name];
+    if(r.status==='running'){this.blog(name+': ya está en ejecución');this.forceUpdate();return;}
+    const segs=['sys',name+'-turn'],parent0='root',hashes=[fnv(parent0+segs[0]),fnv(fnv(parent0+segs[0])+segs[1])];
+    const table=[];let i=0;
+    if(blk.map[hashes[0]]!==undefined){const idx=blk.map[hashes[0]],b=blk.blocks[idx];if(b.ref===0){blk.queue=blk.queue.filter(q=>q!==idx);}b.ref++;table.push(idx);this.blog(`${name}: acierto en sys (${b.id}), ref → ${b.ref}`);i=1;}
+    for(;i<segs.length;i++){
+      if(blk.queue.length===0){this.blog(`${name}: sin bloques libres, admisión rechazada`);table.forEach(idx=>{blk.blocks[idx].ref--;});this.forceUpdate();return;}
+      const idx=blk.queue.shift(),b=blk.blocks[idx];
+      if(b.hash){delete blk.map[b.hash];this.blog(`${name}: fallo, desaloja ${b.id} ("${b.label}")`);}
+      b.hash=hashes[i];b.label=segs[i];b.ref=1;blk.map[b.hash]=idx;table.push(idx);
+      this.blog(`${name}: prefill de ${segs[i]} en ${b.id}`);
+    }
+    r.status='running';r.table=table;this.forceUpdate();
+  }
+  finish(name){
+    const blk=this.state.blk,r=blk.reqs[name];
+    if(r.status!=='running'){this.blog(name+': no está en ejecución');this.forceUpdate();return;}
+    for(let j=r.table.length-1;j>=0;j--){const b=blk.blocks[r.table[j]];b.ref--;if(b.ref===0){blk.queue.push(r.table[j]);this.blog(`${name}: ${b.id} ("${b.label}") ref → 0, vuelve a la cola de libres`);}else this.blog(`${name}: ${b.id} ref → ${b.ref}, sigue fijado`);}
+    r.status='idle';r.table=[];this.forceUpdate();
+  }
+  onAdmitA=()=>this.admit('A');onAdmitB=()=>this.admit('B');onFinishA=()=>this.finish('A');onFinishB=()=>this.finish('B');
+  onBlockReset=()=>this.setState({blk:freshBlk('reinicio: 4 bloques libres')});
+
+  renderVals(){
+    const st=this.state,s=st.camScale,l1=ramp(s*S1),l2=ramp(s*S2),lv=l2>=.5?2:l1>=.5?1:0;
+    const lod={c1:l1,v1:l1>0?'visible':'hidden',i1:1-l1,iv1:l1<1?'visible':'hidden',c2:l2,v2:l2>0?'visible':'hidden',i2:1-l2,iv2:l2<1?'visible':'hidden'};
+    const camTransform=`translate(${st.camX}px,${st.camY}px) scale(${s})`;
+    const cur=this.curStop(),path=(cur==='sched'||cur==='kv'||cur==='backend')?['fleet',cur]:['fleet','node','gpu'];
+    const crumbs=path.map((id,i)=>({idx:id,label:STOPS[id].label,sepDisplay:i?'flex':'none',w:id===cur?700:500,c:id===cur?'var(--colorActionPrimaryBg)':'var(--colorContentSubtleFg)',bg:id===cur?'var(--colorPurple01)':'transparent'}));
+    const dv=this.decodeCalc(),tv=this.tierCalc(),rv=this.routeCalc();
+    const bv={blocks:st.blk.blocks.map(b=>({id:b.id,sub:b.ref>0?('ref '+b.ref):(b.hash?'en caché':'libre'),bg:b.ref>0?'var(--colorTeal01)':b.hash?'var(--colorBlue01)':'var(--elevationSurfaceBg)',border:b.ref>0?'var(--colorTeal04)':b.hash?'var(--colorBlue06)':'var(--colorBlackA04)',dash:b.hash||b.ref>0?'solid':'dashed'})),log:st.blk.log};
+    const pv={title:{decode:'Calculadora del paso de decode',tier:'¿Merece la pena un nivel?',block:'Admitir y desalojar bloques KV',route:'Enrutar una petición'}[st.popover]||''};
+    return {camTransform,lod,crumbs,levelTag:STOPS[cur].tag,caption:STOPS[cur].cap,zoom:'×'+(s<10?s.toFixed(1):Math.round(s)),
+      upOpacity:PREV[cur]?1:.45,upEvents:PREV[cur]?'auto':'none',cursor:this.drag&&this.moved?'grabbing':'grab',
+      onSched:this.onSched,onKv:this.onKv,onBackend:this.onBackend,backendHint:cur==='backend'?0:1,rv,isRoute:st.popover==='route',openRoute:this.openRoute,openTierNet:this.openTierNet,
+      onRoutePrompt:this.onRoutePrompt,onRouteCached:this.onRouteCached,onRouteQueue:this.onRouteQueue,
+      showLinks:this.props.showInterconnect??true,nodes:NODES,gpusBefore:GPUS_BEFORE,gpusAfter:GPUS_AFTER,kvBlocks:KV_BLOCKS,sms:SMS,
+      vpRef:this.vpRef,heroRef:this.heroRef,l1Ref:this.l1Ref,gpuRef:this.gpuRef,
+      onBack:this.onBack,onUpLevel:this.onUpLevel,onCrumb:this.onCrumb,onDown:this.onDown,onMove:this.onMove,onDragEnd:this.onDragEnd,
+      onHero:this.onHero,onGpu:this.onGpu,zoomIn:this.zoomIn,zoomOut:this.zoomOut,
+      popoverOpen:!!st.popover,isDecode:st.popover==='decode',isTier:st.popover==='tier',isBlock:st.popover==='block',pv,
+      closePopover:this.closePopover,stop:this.stop,openDecode:this.openDecode,openTier:this.openTier,openBlock:this.openBlock,
+      dv,onDecB:this.onDecB,onDecCtx:this.onDecCtx,tv,onTierSel:this.onTierSel,
+      bv,onAdmitA:this.onAdmitA,onAdmitB:this.onAdmitB,onFinishA:this.onFinishA,onFinishB:this.onFinishB,onBlockReset:this.onBlockReset};
+  }
+}
+</script>
+</body>
+</html>

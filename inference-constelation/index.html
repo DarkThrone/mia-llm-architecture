@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Explora un mapa continuo y anidado de una flota de inferencia de LLM: desde la infraestructura en la nube, pasando por los planificadores y las cachés KV, hasta la memoria y la ejecución en GPU.">
+  <title>Constelación de inferencia</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="masthead">
+ <div class="identity"><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><path d="M6 22 12 8 26 14 19 26 6 22 26 14M12 8 19 26" fill="none" stroke="currentColor" stroke-width="1.2"/><g fill="currentColor"><circle cx="6" cy="22" r="2.5"/><circle cx="12" cy="8" r="2.5"/><circle cx="26" cy="14" r="2.5"/><circle cx="19" cy="26" r="2.5"/></g></svg><div><h1>Constelación de inferencia</h1><span>Atlas espacial de inferencia de LLM</span></div></div>
+ <div class="header-actions"><span class="reference-label">Arquitectura de referencia pública</span><button id="tour-toggle">Recorrido de 55 minutos</button><button id="panel-toggle" aria-expanded="true" aria-controls="inspector">Inspector</button></div>
+</header>
+<main>
+ <section class="workspace" aria-label="Constelación de arquitectura ampliable">
+  <nav id="breadcrumbs" aria-label="Ubicación en la arquitectura"></nav>
+  <canvas id="atlas" aria-label="Mapa de arquitectura anidada. Usa la lista de componentes del inspector para navegar con el teclado. Desplaza la rueda para ampliar, arrastra para mover, haz clic para seleccionar un componente o doble clic para entrar." tabindex="0"></canvas>
+  <div class="map-hint" id="map-hint">Rueda para ampliar <span>·</span> Arrastra para mover <span>·</span> Doble clic para entrar</div>
+  <div class="map-controls"><div class="zoom-control"><button id="zoom-out" aria-label="Alejar">−</button><output id="scale">1×</output><button id="zoom-in" aria-label="Acercar">+</button><button id="overview">Flota</button><button id="go-up" aria-label="Centrar el componente superior">↑</button></div><canvas id="minimap" width="184" height="116" aria-label="Vista general de la flota con la posición actual de la cámara"></canvas></div>
+  <div class="legend"><span><i class="request-key"></i>Solicitud / activaciones</span><span><i class="kv-key"></i>Estado KV</span><span><i class="control-key"></i>Control / metadatos</span></div>
+  <div id="tour-bar" class="tour-bar" hidden><button id="tour-prev" aria-label="Parada anterior del recorrido">←</button><div><span id="tour-progress"></span><strong id="tour-title"></strong></div><button id="tour-next">Siguiente parada →</button><button id="tour-close" aria-label="Cerrar el recorrido guiado">×</button></div>
+  <div id="canvas-status" class="sr-only" aria-live="polite"></div>
+ </section>
+ <aside id="inspector">
+  <div class="panel-tabs" role="tablist" aria-label="Inspector"><button id="detail-tab" role="tab" aria-selected="true" aria-controls="detail-panel">Explorar</button><button id="lab-tab" role="tab" aria-selected="false" aria-controls="lab-panel">Experimentar</button><button id="glossary-tab" role="tab" aria-selected="false" aria-controls="glossary-panel">Glosario</button></div>
+  <section id="detail-panel" role="tabpanel" aria-labelledby="detail-tab">
+   <div class="selection-kind" id="selection-kind"></div><h2 id="selection-title"></h2><p id="selection-summary"></p>
+   <div class="selection-actions"><button class="primary" id="enter-component">Explorar interior</button><button id="trace-next">Seguir solicitud</button></div>
+   <p id="trace-note" class="trace-note" hidden></p>
+   <div id="child-section"><h3>Dentro de este componente</h3><div id="child-list"></div></div>
+   <div id="detail-copy"></div><div id="source-links"></div>
+   <details id="deep-dives"><summary>Análisis técnico detallado</summary><label class="field">Tema<select id="deep-topic"></select></label><div id="deep-content"></div></details>
+  </section>
+  <section id="lab-panel" role="tabpanel" aria-labelledby="lab-tab" hidden>
+   <div class="selection-kind">Referencia: modelo denso de 70 mil millones / H100 SXM</div><h2>Cambia la carga de trabajo</h2><p>Observa la capacidad y la presión de memoria en la misma constelación.</p>
+   <label class="field">Escenario<select id="scenario"><option value="baseline">Referencia</option><option value="zone">Una zona no disponible</option><option value="burst">Ráfaga y amplificación por reintentos</option><option value="context">Contexto largo / lote grande</option><option value="quant">Pesos y KV cuantizados</option></select></label>
+   <div id="lab-controls"></div><div id="lab-results" aria-live="polite"></div>
+   <details><summary>Supuestos y ecuaciones</summary><div id="model-notes"></div></details>
+  </section>
+  <section id="glossary-panel" role="tabpanel" aria-labelledby="glossary-tab" hidden>
+   <div class="selection-kind">Siglas, nombres de hardware y unidades</div><h2>Glosario</h2><p>Qué significa cada término y por qué importa aquí.</p>
+   <label class="field" for="glossary-search">Buscar términos o significados<input id="glossary-search" type="search" placeholder="p. ej., KV, paralelismo, latencia" autocomplete="off" spellcheck="false"></label>
+   <p class="glossary-count" id="glossary-count" role="status" aria-live="polite"></p>
+   <div id="glossary-results"></div>
+  </section>
+  <footer class="panel-footer">Diseño de referencia; no describe infraestructura privada de proveedores. Las notas distinguen entre mecanismos publicados y supuestos de ingeniería.</footer>
+ </aside>
+</main>
+<script src="content.js"></script><script src="glossary-data.js"></script><script src="app.js"></script>
+</body>
+</html>
