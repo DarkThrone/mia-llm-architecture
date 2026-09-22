@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Dos exploraciones interactivas sobre cómo se sirven modelos de lenguaje a escala: un atlas anidado de una flota de inferencia y un explicador del camino de una petición, del gateway al bloque KV.">
+<title>Arquitectura de inferencia de LLM a escala</title>
+<style>
+@font-face{font-family:'DM Sans';font-style:normal;font-weight:400 700;font-display:swap;src:url(inference-constelation/fonts/font-02.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'DM Sans';font-style:normal;font-weight:400 700;font-display:swap;src:url(inference-constelation/fonts/font-01.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+:root{--deep:#061925;--sky:#092333;--ink:#dcebf2;--muted:#91afbf;--cyan:#66d3e7;--focus-dark:#38a9d4;--paper:#fff;--paper-hover:#fafafc;--rule:#e8eaed;--paper-ink:#0f1015;--paper-muted:#0f121ab2;--purple:#7630d7;--purple-6:#8b3dff;--teal:#00c4cc;--teal-1:#bbf3f4;--grey:#606671}
+*{box-sizing:border-box}
+html{height:100%}
+body{margin:0;min-height:100dvh;display:flex;flex-direction:column;font-family:'DM Sans',system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5;background:var(--paper);color:var(--paper-ink);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.top{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:2px 32px;padding:18px 32px;border-bottom:1px solid var(--rule)}
+.top h1{margin:0;font-size:15px;line-height:22px;font-weight:600;letter-spacing:-.01em}
+.top p{margin:0;font-size:14px;line-height:22px;color:var(--paper-muted)}
+.choice{flex:1;display:grid;grid-template-columns:1fr 1fr}
+.panel{display:flex;flex-direction:column;justify-content:space-between;gap:40px;min-height:calc(100dvh - 59px);padding:44px 48px;color:inherit;text-decoration:none;transition:background-color .15s ease}
+.panel>*{width:100%;max-width:34rem}
+.panel h2{margin:0 0 18px;font-size:clamp(32px,3.6vw,54px);line-height:1.05;font-weight:500;letter-spacing:-.02em;text-wrap:balance}
+.panel p{margin:0 0 14px;font-size:17px;line-height:1.5;text-wrap:pretty}
+.panel p:last-child{margin-bottom:0}
+.inside{font-size:15px;line-height:1.5}
+.cta{font-size:16px;line-height:24px;font-weight:600;text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:4px;text-decoration-color:transparent;transition:text-decoration-color .15s ease}
+.panel:hover .cta,.panel:focus-visible .cta{text-decoration-color:currentColor}
+.panel:focus-visible{outline:3px solid var(--focus-dark);outline-offset:-3px}
+.atlas{background:var(--deep);color:var(--ink)}
+.atlas:hover{background:var(--sky)}
+.atlas .inside{color:var(--muted)}
+.atlas .cta,.atlas .motif{color:var(--cyan)}
+.paper:hover{background:var(--paper-hover)}
+.paper .inside{color:var(--paper-muted)}
+.paper .cta{color:var(--purple)}
+.paper:focus-visible{outline-color:var(--purple-6)}
+.motif svg{display:block;width:84px;height:84px}
+.track{position:relative;height:28px;border-radius:6px;overflow:hidden;background:var(--rule)}
+.track i{position:absolute;top:0;bottom:0}
+.web{left:0;width:.09%;min-width:3px;background:var(--grey)}
+.prefill{left:.09%;width:9.6%;background:var(--purple-6)}
+.decode{left:9.96%;width:80.63%;background-color:var(--teal-1);background-image:repeating-linear-gradient(90deg,var(--teal) 0 1.5px,transparent 1.5px 1.672%)}
+.ticks{display:flex;justify-content:space-between;gap:12px;margin-top:8px;font-size:13px;line-height:18px;color:var(--paper-muted);font-variant-numeric:tabular-nums}
+@media (max-width:760px){.top{padding:14px 20px}.choice{grid-template-columns:1fr}.panel{min-height:0;padding:32px 20px 36px;gap:28px}.panel h2{font-size:clamp(28px,8vw,36px)}.panel p{font-size:16px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Arquitectura de inferencia de LLM a escala</h1>
+  <p>Dos exploraciones interactivas, en español. Elige por dónde empezar.</p>
+</header>
+<main class="choice">
+  <a class="panel atlas" href="inference-constelation/index.html">
+    <div class="motif" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M6 22 12 8 26 14 19 26 6 22 26 14M12 8 19 26" fill="none" stroke="currentColor" stroke-width=".9"/><g fill="currentColor"><circle cx="6" cy="22" r="2.2"/><circle cx="12" cy="8" r="2.2"/><circle cx="26" cy="14" r="2.2"/><circle cx="19" cy="26" r="2.2"/></g></svg></div>
+    <div>
+      <h2>Constelación de inferencia</h2>
+      <p>Un mapa continuo y anidado de una flota de inferencia de LLM: desde la infraestructura en la nube, pasando por los planificadores y las cachés KV, hasta la memoria y la ejecución en GPU. Amplía con la rueda, entra en cada componente y sigue una petición de extremo a extremo.</p>
+      <p class="inside">Incluye un recorrido guiado de 55 minutos, un laboratorio para cambiar la carga de trabajo y un glosario de 85 términos.</p>
+    </div>
+    <span class="cta">Abrir el atlas</span>
+  </a>
+  <a class="panel paper" href="llm-architecture-explainer/llm-serving-explainer.html">
+    <div class="motif" aria-hidden="true">
+      <div class="track"><i class="web"></i><i class="prefill"></i><i class="decode"></i></div>
+      <div class="ticks"><span>primer token a los 224 ms</span><span>último token a los 2,04 s</span></div>
+    </div>
+    <div>
+      <h2>Servir modelos de frontera: del gateway al bloque KV</h2>
+      <p>Cómo una petición se convierte en tokens a la escala de Anthropic u OpenAI: el gateway, el planificador, el motor multichip, las dos fases con cuellos de botella opuestos, la caché KV y la contabilidad de bloques.</p>
+      <p class="inside">Seis secciones con simuladores que puedes tocar, y una pizarra con zoom para recorrer la flota caja por caja.</p>
+    </div>
+    <span class="cta">Leer el explicador</span>
+  </a>
+</main>
+</body>
+</html>
