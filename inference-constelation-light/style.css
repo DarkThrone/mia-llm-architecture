@@ -52,7 +52,7 @@ main{height:calc(100dvh - 80px);display:grid;grid-template-columns:minmax(0,1fr)
 .legend i{width:21px;height:2px;display:block;border-radius:1px}
 .request-key{background:var(--purple)}
 .kv-key{background:var(--teal)}
-.control-key{background:var(--g05)}
+.control-key{background:var(--ink)}
 
 #inspector{background:var(--bg);color:var(--ink);border-left:1px solid var(--border);overflow-y:auto;overscroll-behavior:contain}
 .panel-tabs{position:sticky;top:0;background:var(--bg);z-index:2;display:flex;gap:2px;border-bottom:1px solid var(--divider);padding:12px 16px}
