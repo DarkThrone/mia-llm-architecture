@@ -9,8 +9,8 @@
 <x-dc>
 <helmet>
 <style>
-@font-face{font-family:"Canva Sans";font-style:normal;font-display:swap;font-weight:400 700;src:url("./fonts/canva-sans-latin.woff2") format("woff2-variations"),url("./fonts/canva-sans-latin.woff2") format("woff2");unicode-range:U+0020-007e,U+00a0,U+2013-2014,U+2018-201a,U+201c-201e,U+2020-2022,U+2026}
-@font-face{font-family:"Canva Sans";font-style:normal;font-display:swap;font-weight:400 700;src:url("./fonts/canva-sans-latin-ext.woff2") format("woff2");unicode-range:U+0100-024f}
+@font-face{font-family:"DM Sans";font-style:normal;font-display:swap;font-weight:400 700;src:url("./fonts/dm-sans-latin.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"DM Sans";font-style:normal;font-display:swap;font-weight:400 700;src:url("./fonts/dm-sans-latin-ext.woff2") format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
 html,body{margin:0;background:#fff;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 a{color:#7630D7;text-decoration:none}
 a:hover{color:#612DAE;text-decoration:underline}
@@ -19,18 +19,18 @@ a:hover{color:#612DAE;text-decoration:underline}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </helmet>
-<div style="font-family:'Canva Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-variation-settings:'opsz' 0;color:#0F1015;background:#fff;font-size:16px;line-height:24px">
+<div style="font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#0F1015;background:#fff;font-size:16px;line-height:24px">
 <div data-page="1" style="max-width:1200px;margin:0 auto;padding:0 32px 96px;display:grid;grid-template-columns:200px minmax(0,1fr);column-gap:64px">
 
 <header data-screen-label="Cabecera" style="grid-column:1/-1;padding:56px 0 0;margin-bottom:48px">
-  <h1 style="margin:0 0 24px;font-size:clamp(40px,5vw,64px);line-height:1.05;font-weight:400;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-feature-settings:'ss02','ss03';max-width:22ch;text-wrap:balance">Servir modelos de frontera: del gateway al bloque KV</h1>
+  <h1 style="margin:0 0 24px;font-size:clamp(40px,5vw,64px);line-height:1.05;font-weight:400;letter-spacing:-0.01em;max-width:22ch;text-wrap:balance">Servir modelos de frontera: del gateway al bloque KV</h1>
   <p style="margin:0 0 12px;max-width:64ch;font-size:21px;line-height:1.5;text-wrap:pretty">Cómo una petición se convierte en tokens a la escala de Anthropic u OpenAI: el gateway, el planificador, el motor multichip, las dos fases con cuellos de botella opuestos, la caché KV y la contabilidad de bloques que hay debajo de todo.</p>
   <p style="margin:0 0 32px;max-width:64ch;font-size:16px;line-height:24px;color:#0F121AB2;text-wrap:pretty">Ninguna de las dos empresas publica su stack completo, así que esto es un compuesto de charlas públicas, postmortems de incidentes y los motores de código abierto (vLLM, SGLang, TensorRT-LLM) que implementan las mismas ideas. Los números asumen un modelo denso de clase 70B en un nodo de 8×H100 salvo que un control diga otra cosa. Todos los controles funcionan; el texto nunca depende de que hagas clic en nada.</p>
   <div style="background:#F3F4F7;border-radius:16px;padding:24px">
     <div data-hero-stats="1" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px 24px;margin-bottom:24px">
-      <div><div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><span style="width:12px;height:12px;border-radius:3px;background:#606671;flex:none"></span><span style="font-size:32px;line-height:1.1;font-weight:500;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-variant-numeric:tabular-nums">0.1%</span></div><p style="margin:0;font-size:13px;line-height:18px;color:#0F121AB2">Capa web: gateway y planificador, unos 2 ms</p></div>
-      <div><div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><span style="width:12px;height:12px;border-radius:3px;background:#8B3DFF;flex:none"></span><span style="font-size:32px;line-height:1.1;font-weight:500;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-variant-numeric:tabular-nums">10.6%</span></div><p style="margin:0;font-size:13px;line-height:18px;color:#0F121AB2">Prefill: una pasada sobre 20k tokens de prompt, 216 ms</p></div>
-      <div><div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><span style="width:12px;height:12px;border-radius:3px;background:#00C4CC;flex:none"></span><span style="font-size:32px;line-height:1.1;font-weight:500;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-variant-numeric:tabular-nums">89.3%</span></div><p style="margin:0;font-size:13px;line-height:18px;color:#0F121AB2">Decode: 300 tokens de salida a 6,07 ms cada uno, 1,81 s</p></div>
+      <div><div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><span style="width:12px;height:12px;border-radius:3px;background:#606671;flex:none"></span><span style="font-size:32px;line-height:1.1;font-weight:500;letter-spacing:-0.01em;font-variant-numeric:tabular-nums">0.1%</span></div><p style="margin:0;font-size:13px;line-height:18px;color:#0F121AB2">Capa web: gateway y planificador, unos 2 ms</p></div>
+      <div><div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><span style="width:12px;height:12px;border-radius:3px;background:#8B3DFF;flex:none"></span><span style="font-size:32px;line-height:1.1;font-weight:500;letter-spacing:-0.01em;font-variant-numeric:tabular-nums">10.6%</span></div><p style="margin:0;font-size:13px;line-height:18px;color:#0F121AB2">Prefill: una pasada sobre 20k tokens de prompt, 216 ms</p></div>
+      <div><div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><span style="width:12px;height:12px;border-radius:3px;background:#00C4CC;flex:none"></span><span style="font-size:32px;line-height:1.1;font-weight:500;letter-spacing:-0.01em;font-variant-numeric:tabular-nums">89.3%</span></div><p style="margin:0;font-size:13px;line-height:18px;color:#0F121AB2">Decode: 300 tokens de salida a 6,07 ms cada uno, 1,81 s</p></div>
     </div>
     <div style="position:relative">
       <div style="position:relative;height:40px;border-radius:6px;overflow:hidden;background:#E8EAED">
@@ -78,7 +78,7 @@ a:hover{color:#612DAE;text-decoration:underline}
 
 <section id="path" data-screen-label="1 La ruta de la petición" style="padding-bottom:56px;margin-bottom:56px;border-bottom:1px solid #39466024">
   <p style="margin:0 0 8px;font-size:12px;line-height:18px;font-weight:600;letter-spacing:.02em;color:#7630D7">Sección 1</p>
-  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-feature-settings:'ss02','ss03';text-wrap:balance">La ruta de la petición</h2>
+  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;text-wrap:balance">La ruta de la petición</h2>
   <div style="max-width:66ch">
     <p style="margin:0 0 16px;font-size:18px;line-height:28px;text-wrap:pretty">Cientos de millones de respuestas al día suena a problema de escala web. No lo es. En el gateway son unos pocos miles de peticiones por segundo, algo que cualquier servicio en Go decente aguanta sin despeinarse. Lo difícil es que cada petición fija cientos de gigabytes de pesos en HBM y quema segundos de acelerador en un bucle limitado por el ancho de banda de memoria. Servir es un problema de planificación y de memoria disfrazado de API REST.</p>
   </div>
@@ -160,7 +160,7 @@ a:hover{color:#612DAE;text-decoration:underline}
 
 <section id="phases" data-screen-label="2 Dos fases" style="padding-bottom:56px;margin-bottom:56px;border-bottom:1px solid #39466024">
   <p style="margin:0 0 8px;font-size:12px;line-height:18px;font-weight:600;letter-spacing:.02em;color:#7630D7">Sección 2</p>
-  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-feature-settings:'ss02','ss03';text-wrap:balance">Dos fases con cuellos de botella opuestos</h2>
+  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;text-wrap:balance">Dos fases con cuellos de botella opuestos</h2>
   <div style="max-width:66ch">
     <p style="margin:0 0 16px;font-size:18px;line-height:28px;text-wrap:pretty">Cada petición ejecuta dos cargas de trabajo. El prefill es una pasada gorda sobre todo el prompt. El decode es un bucle que emite un token por paso. Todo lo ingenioso del planificador existe porque esas dos no se llevan bien en la misma iteración.</p>
     <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Prefill</h3>
@@ -185,7 +185,7 @@ a:hover{color:#612DAE;text-decoration:underline}
 
 <section id="decode" data-screen-label="3 Decode, byte a byte" style="padding-bottom:56px;margin-bottom:56px;border-bottom:1px solid #39466024">
   <p style="margin:0 0 8px;font-size:12px;line-height:18px;font-weight:600;letter-spacing:.02em;color:#7630D7">Sección 3</p>
-  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-feature-settings:'ss02','ss03';text-wrap:balance">Decode, byte a byte</h2>
+  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;text-wrap:balance">Decode, byte a byte</h2>
   <div style="max-width:66ch">
     <p style="margin:0 0 16px;font-size:18px;line-height:28px;text-wrap:pretty">El decode es el bucle que produce todos los tokens después del primero, y es la fase en la que el acelerador se pasa casi toda la vida sin hacer apenas cuentas.</p>
     <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Qué hace un paso</h3>
@@ -245,11 +245,11 @@ a:hover{color:#612DAE;text-decoration:underline}
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px 24px">
-        <div><p style="margin:0 0 2px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2">Tiempo por paso (suelo de ITL)</p><div style="font-size:28px;line-height:1.15;font-weight:500;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-variant-numeric:tabular-nums">{{ d.step }}<span style="display:block;font-size:13px;line-height:18px;font-weight:400;color:#0F121AB2;letter-spacing:0;font-variation-settings:'opsz' 0;margin-top:2px">por token</span></div></div>
+        <div><p style="margin:0 0 2px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2">Tiempo por paso (suelo de ITL)</p><div style="font-size:28px;line-height:1.15;font-weight:500;letter-spacing:-0.01em;font-variant-numeric:tabular-nums">{{ d.step }}<span style="display:block;font-size:13px;line-height:18px;font-weight:400;color:#0F121AB2;letter-spacing:0;margin-top:2px">por token</span></div></div>
         <div><p style="margin:0 0 2px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2">Limitado por</p><div style="font-size:21px;line-height:1.3;font-weight:600;letter-spacing:-0.005em">{{ d.bound }}<span style="display:block;font-size:13px;line-height:18px;font-weight:400;color:#0F121AB2;letter-spacing:0;margin-top:2px">{{ d.boundSub }}</span></div></div>
-        <div><p style="margin:0 0 2px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2">Uso del cómputo</p><div style="font-size:28px;line-height:1.15;font-weight:500;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-variant-numeric:tabular-nums">{{ d.util }}<span style="display:block;font-size:13px;line-height:18px;font-weight:400;color:#0F121AB2;letter-spacing:0;font-variation-settings:'opsz' 0;margin-top:2px">de los FLOPS pico</span></div></div>
-        <div><p style="margin:0 0 2px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2">Rendimiento agregado</p><div style="font-size:28px;line-height:1.15;font-weight:500;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-variant-numeric:tabular-nums">{{ d.tps }}<span style="display:block;font-size:13px;line-height:18px;font-weight:400;color:#0F121AB2;letter-spacing:0;font-variation-settings:'opsz' 0;margin-top:2px">tok/s en toda la réplica</span></div></div>
-        <div><p style="margin:0 0 2px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2">Memoria: pesos + KV residente</p><div style="font-size:28px;line-height:1.15;font-weight:500;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-variant-numeric:tabular-nums;color:{{ d.fitColor }}">{{ d.fit }}<span style="display:block;font-size:13px;line-height:18px;font-weight:400;color:#0F121AB2;letter-spacing:0;font-variation-settings:'opsz' 0;margin-top:2px">{{ d.fitSub }}</span></div></div>
+        <div><p style="margin:0 0 2px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2">Uso del cómputo</p><div style="font-size:28px;line-height:1.15;font-weight:500;letter-spacing:-0.01em;font-variant-numeric:tabular-nums">{{ d.util }}<span style="display:block;font-size:13px;line-height:18px;font-weight:400;color:#0F121AB2;letter-spacing:0;margin-top:2px">de los FLOPS pico</span></div></div>
+        <div><p style="margin:0 0 2px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2">Rendimiento agregado</p><div style="font-size:28px;line-height:1.15;font-weight:500;letter-spacing:-0.01em;font-variant-numeric:tabular-nums">{{ d.tps }}<span style="display:block;font-size:13px;line-height:18px;font-weight:400;color:#0F121AB2;letter-spacing:0;margin-top:2px">tok/s en toda la réplica</span></div></div>
+        <div><p style="margin:0 0 2px;font-size:12px;line-height:18px;font-weight:600;color:#0F121AB2">Memoria: pesos + KV residente</p><div style="font-size:28px;line-height:1.15;font-weight:500;letter-spacing:-0.01em;font-variant-numeric:tabular-nums;color:{{ d.fitColor }}">{{ d.fit }}<span style="display:block;font-size:13px;line-height:18px;font-weight:400;color:#0F121AB2;letter-spacing:0;margin-top:2px">{{ d.fitSub }}</span></div></div>
       </div>
       <p style="margin:0;font-size:14px;line-height:22px;color:#0F121AB2;max-width:72ch;text-wrap:pretty">{{ d.note }}</p>
     </div>
@@ -269,7 +269,7 @@ a:hover{color:#612DAE;text-decoration:underline}
 
 <section id="stall" data-screen-label="4 El atasco de generación" style="padding-bottom:56px;margin-bottom:56px;border-bottom:1px solid #39466024">
   <p style="margin:0 0 8px;font-size:12px;line-height:18px;font-weight:600;letter-spacing:.02em;color:#7630D7">Sección 4</p>
-  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-feature-settings:'ss02','ss03';text-wrap:balance">El atasco de generación y dos salidas</h2>
+  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;text-wrap:balance">El atasco de generación y dos salidas</h2>
   <div style="max-width:66ch">
     <p style="margin:0 0 16px;font-size:18px;line-height:28px;text-wrap:pretty">El batching continuo deja que las peticiones entren y salgan con granularidad de iteración en vez de esperar a la secuencia más lenta de un lote estático. Eso solo ya es una mejora de rendimiento de un orden de magnitud. También crea el atasco: el prefill de una petición nueva se planifica en la misma iteración que el paso de decode de todos los demás.</p>
     <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Un prefill de 20k tokens es un muro de cómputo. Todos los usuarios que están generando esperan a que acabe, y la latencia entre tokens salta de unos milisegundos a cientos. El usuario lo vive como un stream que se congela y luego se pone al día de golpe. Hay tres respuestas: tragárselo, trocear el prefill o mover el prefill a otras máquinas.</p>
@@ -370,7 +370,7 @@ a:hover{color:#612DAE;text-decoration:underline}
 
 <section id="cache" data-screen-label="5 Caché KV de prefijos" style="padding-bottom:56px;margin-bottom:56px;border-bottom:1px solid #39466024">
   <p style="margin:0 0 8px;font-size:12px;line-height:18px;font-weight:600;letter-spacing:.02em;color:#7630D7">Sección 5</p>
-  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-feature-settings:'ss02','ss03';text-wrap:balance">Caché KV de prefijos y sus niveles</h2>
+  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;text-wrap:balance">Caché KV de prefijos y sus niveles</h2>
   <div style="max-width:66ch">
     <p style="margin:0 0 16px;font-size:18px;line-height:28px;text-wrap:pretty">La unidad de caché es el bloque KV, y la caché es solo de prefijos por una razón física: K se guarda después de RoPE, así que la KV cacheada de un token solo vale en la posición exacta en la que se calculó. Los mismos tokens con otro desplazamiento son un fallo. Todo lo demás se deriva de ahí.</p>
     <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Bloques y búsqueda</h3>
@@ -433,7 +433,7 @@ a:hover{color:#612DAE;text-decoration:underline}
 
 <section id="blocks" data-screen-label="6 Dentro de la caché en HBM" style="padding-bottom:56px;margin-bottom:56px;border-bottom:1px solid #39466024">
   <p style="margin:0 0 8px;font-size:12px;line-height:18px;font-weight:600;letter-spacing:.02em;color:#7630D7">Sección 6</p>
-  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-feature-settings:'ss02','ss03';text-wrap:balance">Dentro de la caché en HBM: hashing, refcounts, desalojo</h2>
+  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;text-wrap:balance">Dentro de la caché en HBM: hashing, refcounts, desalojo</h2>
   <div style="max-width:66ch">
     <p style="margin:0 0 16px;font-size:18px;line-height:28px;text-wrap:pretty">Esto es una tabla de páginas con un giro direccionable por contenido. En concreto, lo que hacen vLLM V1 y SGLang.</p>
     <h3 style="margin:32px 0 8px;font-size:21px;line-height:26px;font-weight:600;letter-spacing:-0.005em">Estructuras de datos</h3>
@@ -508,7 +508,7 @@ a:hover{color:#612DAE;text-decoration:underline}
 
 <section id="sources" data-screen-label="Fuentes y supuestos" style="padding-bottom:24px">
   <p style="margin:0 0 8px;font-size:12px;line-height:18px;font-weight:600;letter-spacing:.02em;color:#7630D7">Apéndice</p>
-  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;font-variation-settings:'opsz' 100;font-feature-settings:'ss02','ss03';text-wrap:balance">Fuentes y supuestos</h2>
+  <h2 style="margin:0 0 20px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-0.01em;text-wrap:balance">Fuentes y supuestos</h2>
   <div style="max-width:66ch">
     <p style="margin:0 0 16px;font-size:16px;line-height:24px;text-wrap:pretty">Material público detrás del compuesto de arriba. Los números pico de los fabricantes son densos (sin esparcidad estructurada). Las estimaciones de tiempo de esta página ignoran los FLOPs de atención salvo que se diga, asumen un reparto perfecto entre la réplica y añaden 0,25 ms fijos por iteración de comunicación y lanzamiento.</p>
     <ul style="margin:0;padding-left:1.25em;font-size:15px;line-height:22px;color:#0F1015D9">
@@ -534,7 +534,7 @@ a:hover{color:#612DAE;text-decoration:underline}
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;animate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Movimiento&quot;},&quot;speed&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Normal&quot;,&quot;options&quot;:[&quot;Lenta&quot;,&quot;Normal&quot;,&quot;Rápida&quot;],&quot;tsType&quot;:&quot;'Lenta' | 'Normal' | 'Rápida'&quot;,&quot;section&quot;:&quot;Movimiento&quot;}}">
 const H=React.createElement;
-const FONT='"Canva Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif';
+const FONT='"DM Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif';
 const C={ink:'#0F1015',sub:'#0F1015D9',mute:'#0F121AB2',border:'#39466024',g02:'#E8EAED',g03:'#DDDFE4',g04:'#C1C5CD',g05:'#8A8F99',g06:'#606671',g07:'#3E424C',purple:'#8B3DFF',purple7:'#7630D7',purpleA:'#A370FC26',teal:'#00C4CC',teal4:'#00AFB5',blue:'#3D8BFF',blue6:'#1A62FF',blue2:'#CCE1FF',red:'#DB142C',green:'#008009',panel:'#F3F4F7'};
 const LIT='0 0 0 2px #8B3DFF, 0 2px 4px rgba(24,44,89,.14), 0 6px 12px rgba(24,44,89,.07)';
 const HW={h100:{name:'H100 SXM',hbm:80e9,bw:3.35e12,fp8:1979e12,bf16:989e12},b200:{name:'B200',hbm:192e9,bw:8e12,fp8:4500e12,bf16:2250e12},mi300x:{name:'MI300X',hbm:192e9,bw:5.3e12,fp8:2615e12,bf16:1307e12}};
